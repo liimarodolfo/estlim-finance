@@ -9,7 +9,8 @@ Arquivo vivo. O Claude Code le no inicio de toda sessao e atualiza ao fim de cad
 | B1 | Push para o GitHub bloqueado pelo modo automatico da sessao | Commits ficam locais ate alguem empurrar | Rodolfo empurra pelo GitHub Desktop, ou libera uma regra de Bash para `git push` nas configuracoes do Claude Code |
 | B2 | Projeto na Vercel ainda nao criado | Sem deploy publicado | Precisa do teamId da conta pessoal (a conta Hobby nao aparece em `list_teams`) e de um build valido no repositorio. Fica para o fim do Epico 1, quando existir app para buildar |
 | B3 | Variaveis de ambiente na Vercel nao cadastradas | Build publicado sem Supabase | Depende de B2. As tres variaveis estao em `.env.example` |
-| B4 | Senha do banco Supabase (`SUPABASE_DB_PASSWORD`) nao informada | CLI do Supabase nao consegue rodar `db push` | Nao bloqueia: as migrations vao ser aplicadas pelo MCP do Supabase e versionadas em `supabase/migrations` do mesmo jeito |
+| B4 | Senha do banco Supabase (`SUPABASE_DB_PASSWORD`) nao informada | `pnpm types:supabase` e a CLI nao rodam | Contornado: as migrations vao pelo MCP e os tipos sao gerados pelo MCP tambem. Informar a senha so se quiser rodar a CLI localmente |
+| B5 | Perfis dos dois usuarios ainda nao existem | Sem perfil, `private.meu_casal()` devolve null e o RLS nao libera nada | O Epico 3 cria o gatilho que abre o perfil no primeiro login de rodolfo@rliima.com e thainy@rliima.com, ja apontando para o casal Esteves Liima |
 
 Nenhum bloqueio impede o andamento dos epicos 1 e 2.
 
@@ -35,6 +36,9 @@ Nenhum bloqueio impede o andamento dos epicos 1 e 2.
 | 14/09/2026 | react-router-dom 6.30 com as future flags do 7 ligadas, recharts 3, framer-motion 12 | Epico 1 |
 | 14/09/2026 | CSS do prototipo portado em tres arquivos: tokens.css e prototipo.css sao copia fiel, correcoes.css isola cada divergencia com o motivo escrito | Epico 1 |
 | 14/09/2026 | Fonte Inter servida pelo pacote @fontsource-variable e FontAwesome so no conjunto solid, que e o unico usado no prototipo. O app nao depende de CDN | Epico 1 |
+| 14/09/2026 | `meu_casal()` mora no schema `private`, nao em `public`. O PostgREST so expoe `public`, entao a funcao nao vira rota REST e o linter de seguranca fica limpo. Revogar o execute dela nao era opcao: policy precisa de execute na funcao que chama | Epico 2 |
+| 14/09/2026 | Tres regras de negocio ficaram no schema, nao so na tela: motivo de ajuste obrigatorio, valor obrigatorio em lancamento de valor fixo, e aporte nunca no credito | Epico 2 |
+| 14/09/2026 | Numeracao das migrations deslocada: storage e o ajuste de seguranca ocuparam 0003 a 0005, entao o Epico 8 comeca em `0006_functions.sql` | Epico 2 |
 | 14/09/2026 | **Virada de mes: contas fixas de valor variavel nascem SEM valor**, com o dot vermelho de notificacao ate o valor ser preenchido. Isso substitui a regra da media dos 3 ultimos pagos que estava na secao 4.1 do documento mestre e na `fn_virada_mes` da especificacao tecnica | Bloco 5, resposta explicita do Rodolfo |
 
 ## Suposicoes assumidas
@@ -58,7 +62,7 @@ Quando faltar resposta e o padrao sugerido for usado, registrar aqui para valida
 |---|---|---|---|---|
 | 0 | Descoberta e configuracao | concluido | main | 14/09/2026 |
 | 1 | Fundacao tecnica | concluido | epico/1-fundacao-tecnica | 14/09/2026 |
-| 2 | Banco de dados e seguranca | a fazer | epico/2-banco-e-seguranca | |
+| 2 | Banco de dados e seguranca | concluido | epico/2-banco-e-seguranca | 14/09/2026 |
 | 3 | Autenticacao e Perfil | a fazer | epico/3-auth-e-perfil | |
 | 4 | Design system | a fazer | epico/4-design-system | |
 | 5 | Carteiras | a fazer | epico/5-carteiras | |
@@ -88,6 +92,12 @@ Status possiveis: a fazer, em andamento, concluido, bloqueado.
 - Pendente: push para o GitHub (B1), projeto e variaveis na Vercel (B2 e B3).
 - Proximo passo: Epico 1, fundacao tecnica.
 
+### Sessao 1 · 14/09/2026 · Epico 2
+- Feito: cinco migrations aplicadas e versionadas; onze tabelas, dez enums, indices e a view `v_lancamentos` com `security_invoker`; RLS por `casal_id` em tudo, com pagamentos herdando o dono do lancamento; buckets `avatares` e `corretoras` privados, 2 MB, so imagem; seed do casal e das dez categorias padrao; tipos regerados do schema com atalhos para as telas; script de teste em `supabase/testes/rls_e_restricoes.sql`.
+- Testado: usuario de um casal ve so as proprias linhas, e insert, update e delete no casal alheio nao passam. As seis restricoes de schema barram o que devem barrar. Linter de seguranca do Supabase em zero alertas.
+- Pendente: perfis dos usuarios (B5), que dependem do Epico 3.
+- Proximo passo: Epico 3, autenticacao e perfil.
+
 ### Sessao 1 · 14/09/2026 · Epico 1
 - Feito: projeto Vite com React 18 e TypeScript estrito; Tailwind 4 com os tokens do prototipo; eslint sem `any` e exigindo `import type`; client Supabase tipado lendo so a anon key; formatadores de moeda, data e hora mais a funcao `agora()` que vai alimentar o check de baixa; mascaras de data, hora, telefone e moeda; stores de tema e de filtros; shell completo com topbar, pills de Jan a Dez, navegacao flutuante de seis abas com indicador deslizante, FAB e ripple global; sete telas vazias, uma por modulo; rotas com as future flags do react-router 7. Build e lint limpos, conferido no mobile e no desktop nos dois temas.
 - Pendente: push (B1) e Vercel (B2 e B3). Pontos de design D1 e D2 aguardando sua palavra.
@@ -100,7 +110,6 @@ Status possiveis: a fazer, em andamento, concluido, bloqueado.
 | CLI do Supabase nao instalada | As migrations vao pelo MCP. Instalar quando for preciso rodar Edge Functions localmente (Epico 12) |
 | CLI da Vercel nao instalada | Deploy pelo git. Instalar se for preciso cadastrar variaveis de ambiente por linha de comando |
 | `fn_virada_mes` da especificacao tecnica descreve a media dos 3 ultimos pagos | Contradiz a decisao de 14/09/2026. Implementar com valor nulo e corrigir o texto do documento no Epico 8 |
-| `src/types/database.ts` e um esqueleto vazio | O schema so nasce no Epico 2. Regenerar com `pnpm types:supabase` assim que as migrations rodarem |
 | Projeto sem testes automatizados | O Epico 14 monta a suite. Ate la a validacao e build, lint e conferencia visual nos dois temas |
 
 ## Ideias para versoes futuras
