@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta id="metaTheme" name="theme-color" content="#ffffff" />
+    <meta name="description" content="ESTLIM, planejamento e controle financeiro do casal." />
+    <title>ESTLIM · Planejamento Financeiro</title>
+    <script>
+      // Evita o flash de tema claro antes do React montar.
+      (function () {
+        try {
+          var t = localStorage.getItem('estlim.tema') || 'light';
+          document.documentElement.dataset.theme = t;
+          document.documentElement.style.backgroundColor = t === 'dark' ? '#0b0d0f' : '#ffffff';
+          document.getElementById('metaTheme').setAttribute('content', t === 'dark' ? '#0b0d0f' : '#ffffff');
+        } catch (e) {
+          document.documentElement.dataset.theme = 'light';
+        }
+      })();
+    </script>
+  </head>
+  <body class="boot">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
