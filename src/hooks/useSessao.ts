@@ -44,13 +44,6 @@ export async function entrar(email: string, senha: string) {
   if (error) throw error
 }
 
-export async function cadastrar(email: string, senha: string) {
-  const { data, error } = await supabase.auth.signUp({ email: email.trim(), password: senha })
-  if (error) throw error
-  // Sem sessao na volta significa que o Supabase mandou e-mail de confirmacao.
-  return { precisaConfirmarEmail: !data.session }
-}
-
 export async function recuperarSenha(email: string) {
   const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
     redirectTo: `${window.location.origin}/perfil`,

@@ -40,37 +40,12 @@
   line-height: 1.5;
 }
 
-.login-abas {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 18px;
-}
-
-.login-abas .chip {
-  flex: 1;
-  text-align: center;
-}
-
 .login-erro {
   display: flex;
   gap: 10px;
   align-items: flex-start;
   background: var(--expense-soft);
   color: var(--expense);
-  border-radius: var(--r-md);
-  padding: 12px 14px;
-  font-size: 12.5px;
-  font-weight: 600;
-  margin-bottom: 14px;
-  line-height: 1.45;
-}
-
-.login-aviso {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  background: var(--income-soft);
-  color: var(--income);
   border-radius: var(--r-md);
   padding: 12px 14px;
   font-size: 12.5px;
