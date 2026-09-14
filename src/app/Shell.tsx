@@ -4,10 +4,12 @@ import { Topbar } from '@/ui/Topbar'
 import { BottomNav } from '@/ui/BottomNav'
 import { FAB } from '@/ui/FAB'
 import { useRipple } from '@/ui/useRipple'
+import { useSheets } from '@/store/useSheets'
 
 export function Shell() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
+  const sheetsAbertos = useSheets((e) => e.abertos)
   useRipple()
 
   // A orquestracao de entrada roda uma vez. Depois disso, so movimento por acao.
@@ -24,7 +26,7 @@ export function Shell() {
     <>
       <Topbar />
       <Outlet />
-      <FAB aoClicar={() => navigate('/lancamentos')} />
+      <FAB aoClicar={() => navigate('/lancamentos')} aberto={sheetsAbertos > 0} />
       <BottomNav />
     </>
   )

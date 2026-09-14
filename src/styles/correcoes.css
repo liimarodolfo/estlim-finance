@@ -13,3 +13,11 @@
     right: max(14px, calc((100vw - 1270px) / 2 + 16px));
   }
 }
+
+/* O prototipo embute a FontAwesome com o nome de familia FA6S. Aqui a fonte vem
+   do pacote npm, onde a familia chama "Font Awesome 6 Free", entao o check que o
+   CSS desenha por content nas bolinhas de cor sairia como quadrado vazio. */
+.cor-sw.sel::after,
+.cor-sw.cor-solida.sel::after {
+  font-family: 'Font Awesome 6 Free';
+}
