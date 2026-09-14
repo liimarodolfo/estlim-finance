@@ -1,0 +1,15 @@
+/* Correcoes pontuais sobre o prototipo. Cada regra aqui tem motivo escrito.
+   O prototipo.css continua copia fiel; toda divergencia mora neste arquivo. */
+
+/* O prototipo posiciona o FAB e o painel de notificacoes por
+   calc((100vw - 1270px)/2 + N). Entre 1024px e 1270px de viewport a conta fica
+   negativa e joga os dois para fora da tela. O max() preserva a intencao
+   (alinhar com a coluna de 1270px) e garante a margem minima nas telas menores. */
+@media (min-width: 1024px) {
+  .fab {
+    right: max(20px, calc((100vw - 1270px) / 2 + 24px));
+  }
+  .notif-panel {
+    right: max(14px, calc((100vw - 1270px) / 2 + 16px));
+  }
+}
