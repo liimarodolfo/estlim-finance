@@ -10,7 +10,8 @@ Arquivo vivo. O Claude Code le no inicio de toda sessao e atualiza ao fim de cad
 | B2 | Projeto na Vercel ainda nao criado | Sem deploy publicado | Precisa do teamId da conta pessoal (a conta Hobby nao aparece em `list_teams`) e de um build valido no repositorio. Fica para o fim do Epico 1, quando existir app para buildar |
 | B3 | Variaveis de ambiente na Vercel nao cadastradas | Build publicado sem Supabase | Depende de B2. As tres variaveis estao em `.env.example` |
 | B4 | Senha do banco Supabase (`SUPABASE_DB_PASSWORD`) nao informada | `pnpm types:supabase` e a CLI nao rodam | Contornado: as migrations vao pelo MCP e os tipos sao gerados pelo MCP tambem. Informar a senha so se quiser rodar a CLI localmente |
-| B5 | Perfis dos dois usuarios ainda nao existem | Sem perfil, `private.meu_casal()` devolve null e o RLS nao libera nada | O Epico 3 cria o gatilho que abre o perfil no primeiro login de rodolfo@rliima.com e thainy@rliima.com, ja apontando para o casal Esteves Liima |
+| B5 | Ninguem fez o primeiro acesso ainda | O fluxo de login, perfil, foto e troca de senha esta escrito e compila, mas nunca rodou com uma conta de verdade. Nao posso criar conta nem digitar senha por voce | Rodolfo abre o app, clica em Primeiro acesso com rodolfo@rliima.com e escolhe a senha. A Thainy faz o mesmo com o e-mail dela |
+| B6 | Envio de e-mail do Supabase nao testado | Se o SMTP padrao estiver restrito aos membros do projeto, o link de confirmacao pode nao chegar em @rliima.com | Se nao chegar, desligar "Confirm email" em Authentication > Sign In / Providers > Email no painel. A tabela `convites` ja garante que so os dois e-mails conseguem se cadastrar |
 
 Nenhum bloqueio impede o andamento dos epicos 1 e 2.
 
@@ -39,6 +40,9 @@ Nenhum bloqueio impede o andamento dos epicos 1 e 2.
 | 14/09/2026 | `meu_casal()` mora no schema `private`, nao em `public`. O PostgREST so expoe `public`, entao a funcao nao vira rota REST e o linter de seguranca fica limpo. Revogar o execute dela nao era opcao: policy precisa de execute na funcao que chama | Epico 2 |
 | 14/09/2026 | Tres regras de negocio ficaram no schema, nao so na tela: motivo de ajuste obrigatorio, valor obrigatorio em lancamento de valor fixo, e aporte nunca no credito | Epico 2 |
 | 14/09/2026 | Numeracao das migrations deslocada: storage e o ajuste de seguranca ocuparam 0003 a 0005, entao o Epico 8 comeca em `0006_functions.sql` | Epico 2 |
+| 14/09/2026 | Cadastro fechado por convite. A tabela `convites` guarda os e-mails liberados e um gatilho recusa qualquer outro no proprio banco, ja que a rota de signup fica aberta na internet com a anon key | Epico 3 |
+| 14/09/2026 | A tela de login e a unica desenhada fora do prototipo, que nao cobre autenticacao. Usa so os tokens e componentes que ja existem, sem linguagem visual nova | Epico 3 |
+| 14/09/2026 | A troca de senha reautentica com a senha atual antes de trocar, porque o Supabase nao confere sozinho no `updateUser` | Epico 3 |
 | 14/09/2026 | **Virada de mes: contas fixas de valor variavel nascem SEM valor**, com o dot vermelho de notificacao ate o valor ser preenchido. Isso substitui a regra da media dos 3 ultimos pagos que estava na secao 4.1 do documento mestre e na `fn_virada_mes` da especificacao tecnica | Bloco 5, resposta explicita do Rodolfo |
 
 ## Suposicoes assumidas
@@ -63,7 +67,7 @@ Quando faltar resposta e o padrao sugerido for usado, registrar aqui para valida
 | 0 | Descoberta e configuracao | concluido | main | 14/09/2026 |
 | 1 | Fundacao tecnica | concluido | epico/1-fundacao-tecnica | 14/09/2026 |
 | 2 | Banco de dados e seguranca | concluido | epico/2-banco-e-seguranca | 14/09/2026 |
-| 3 | Autenticacao e Perfil | a fazer | epico/3-auth-e-perfil | |
+| 3 | Autenticacao e Perfil | concluido | epico/3-auth-e-perfil | 14/09/2026 |
 | 4 | Design system | a fazer | epico/4-design-system | |
 | 5 | Carteiras | a fazer | epico/5-carteiras | |
 | 6 | Categorias e Investimentos | a fazer | epico/6-categorias-e-investimentos | |
@@ -83,6 +87,7 @@ Status possiveis: a fazer, em andamento, concluido, bloqueado.
 | # | Ponto | Situacao |
 |---|---|---|
 | D1 | Em telas de 375px o rotulo "Lancamentos" na aba ativa da navegacao fica cortado. Conferi no proprio `ESTLIM_v40.html` na mesma largura e o corte acontece igual, entao mantive fiel ao prototipo em vez de mexer por conta propria. Os principios de design pedem rotulo legivel, entao vale decidir: encurtar o rotulo para "Lancar", aumentar a proporcao da aba ativa, ou deixar como esta | aguardando Rodolfo |
+| D3 | A tela de login nao tem botao de tema, porque o botao mora na topbar e a topbar nao aparece antes do login. Quem entrar pela primeira vez ve o tema claro | aguardando Rodolfo, se incomodar eu coloco o botao |
 | D2 | As pills de mes rolam sozinhas para deixar o mes ativo visivel. O prototipo nao faz isso e abre sempre em Jan, mesmo com Ago ativo. Considerei defeito e corrigi | aplicado, avisar |
 
 ## Diario de sessoes
@@ -91,6 +96,12 @@ Status possiveis: a fazer, em andamento, concluido, bloqueado.
 - Feito: leitura dos cinco documentos; copia do CLAUDE.md para a raiz e dos demais para `docs/`; `.gitignore`, `.env.example` e `.env.local` preenchido com a URL e a anon key do projeto ESTLIM-Finance (confirmado fora do versionamento); levantamento do ambiente (Node 24.14, pnpm 11.1.3, git 2.53, sem gh, sem CLI da Vercel e sem CLI do Supabase); confirmacao de que o banco esta vazio; entrevista dos blocos 1 a 5; primeiro commit local (`fdf6076`).
 - Pendente: push para o GitHub (B1), projeto e variaveis na Vercel (B2 e B3).
 - Proximo passo: Epico 1, fundacao tecnica.
+
+### Sessao 1 · 14/09/2026 · Epico 3
+- Feito: cadastro fechado por convite, com gatilho que abre o perfil no casal certo; tela de login com entrar, primeiro acesso e recuperacao de senha, mensagens do Supabase traduzidas; guarda que impede qualquer rota sem sessao; tela de Perfil completa com foto no bucket privado (pasta por usuario, 2 MB, tipo validado, URL assinada na leitura), nome, e-mail, telefone mascarado, troca de senha com reautenticacao e sair da conta; avatar da topbar com foto ou iniciais; fila de toasts e campo de senha com olho, adiantados do Epico 4.
+- Testado: o gatilho recusa e-mail sem convite e cria o perfil para os convidados; a tela de login e a validacao conferidas no mobile e no desktop, nos dois temas. O fluxo com conta de verdade nao foi testado (B5), porque nao crio conta nem digito senha.
+- Pendente: primeiro acesso do Rodolfo e da Thainy (B5) e conferencia do envio de e-mail (B6).
+- Proximo passo: Epico 4, design system.
 
 ### Sessao 1 · 14/09/2026 · Epico 2
 - Feito: cinco migrations aplicadas e versionadas; onze tabelas, dez enums, indices e a view `v_lancamentos` com `security_invoker`; RLS por `casal_id` em tudo, com pagamentos herdando o dono do lancamento; buckets `avatares` e `corretoras` privados, 2 MB, so imagem; seed do casal e das dez categorias padrao; tipos regerados do schema com atalhos para as telas; script de teste em `supabase/testes/rls_e_restricoes.sql`.
