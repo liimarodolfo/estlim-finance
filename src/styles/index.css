@@ -5,6 +5,7 @@
 @import './tokens.css';
 @import './prototipo.css';
 @import './correcoes.css';
+@import './login.css';
 
 /* O tema vem do atributo data-theme no html, como no prototipo. */
 @custom-variant dark ([data-theme='dark'] &);
