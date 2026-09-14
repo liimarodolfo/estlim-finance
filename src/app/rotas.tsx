@@ -7,10 +7,25 @@ import Investimentos from '@/features/investimentos/Investimentos'
 import Agenda from '@/features/agenda/Agenda'
 import Categorias from '@/features/categorias/Categorias'
 import Perfil from '@/features/perfil/Perfil'
+import Catalogo from '@/features/catalogo/Catalogo'
 import { NaoEncontrada } from '@/app/NaoEncontrada'
 import { ExigeLogin } from '@/app/ExigeLogin'
 
+// O catalogo do design system e ferramenta de desenvolvimento: existe so no
+// `pnpm dev` e nao entra no build de producao, onde /catalogo cai no nao
+// encontrado, que continua atras do login como todas as outras rotas.
+const rotasDeDesenvolvimento = import.meta.env.DEV
+  ? [
+      {
+        path: '/catalogo',
+        element: <Shell />,
+        children: [{ index: true, element: <Catalogo /> }],
+      },
+    ]
+  : []
+
 export const rotas = createBrowserRouter([
+  ...rotasDeDesenvolvimento,
   {
     path: '/',
     element: (
