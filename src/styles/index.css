@@ -1,0 +1,56 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+@import '@fortawesome/fontawesome-free/css/fontawesome.min.css';
+@import '@fortawesome/fontawesome-free/css/solid.min.css';
+@import './tokens.css';
+@import './prototipo.css';
+@import './correcoes.css';
+
+/* O tema vem do atributo data-theme no html, como no prototipo. */
+@custom-variant dark ([data-theme='dark'] &);
+
+/* Tokens do prototipo expostos como utilitarios do Tailwind. */
+@theme {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface2: var(--surface2);
+  --color-hairline: var(--hairline);
+  --color-hairline-soft: var(--hairline-soft);
+  --color-ink: var(--ink);
+  --color-body: var(--body);
+  --color-muted: var(--muted);
+  --color-muted-soft: var(--muted-soft);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-income: var(--income);
+  --color-income-soft: var(--income-soft);
+  --color-expense: var(--expense);
+  --color-expense-soft: var(--expense-soft);
+  --color-accent: var(--accent);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-invest: var(--invest);
+  --color-invest-soft: var(--invest-soft);
+
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-xl: var(--r-xl);
+  --radius-xxl: var(--r-xxl);
+  --radius-pill: var(--r-pill);
+
+  --font-sans: 'Inter Variable', 'Inter', -apple-system, system-ui, sans-serif;
+}
+
+/* A fonte variavel e servida pelo pacote, entao o app funciona offline. */
+body {
+  font-family: 'Inter Variable', 'Inter', -apple-system, system-ui, sans-serif;
+}
+
+/* O Tailwind zera o display dos svg inline; o prototipo conta com o comportamento padrao. */
+svg {
+  display: inline;
+  vertical-align: baseline;
+}
+.logo-mark {
+  display: block;
+}
