@@ -447,7 +447,19 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      fn_criar_ajuste: {
+        Args: {
+          p_carteira_id: string
+          p_tipo: Database['public']['Enums']['ajuste_tipo']
+          p_valor: number
+          p_motivo: string
+        }
+        Returns: string
+      }
+      fn_excluir_carteira: {
+        Args: { p_carteira_id: string }
+        Returns: string
+      }
     }
     Enums: {
       ajuste_tipo: 'entrada' | 'retirada'

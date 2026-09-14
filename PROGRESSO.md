@@ -10,7 +10,7 @@ Arquivo vivo. O Claude Code le no inicio de toda sessao e atualiza ao fim de cad
 | B2 | Projeto na Vercel ainda nao criado | Sem deploy publicado | Precisa do teamId da conta pessoal (a conta Hobby nao aparece em `list_teams`) e de um build valido no repositorio. Fica para o fim do Epico 1, quando existir app para buildar |
 | B3 | Variaveis de ambiente na Vercel nao cadastradas | Build publicado sem Supabase | Depende de B2. As tres variaveis estao em `.env.example` |
 | B4 | Senha do banco Supabase (`SUPABASE_DB_PASSWORD`) nao informada | `pnpm types:supabase` e a CLI nao rodam | Contornado: as migrations vao pelo MCP e os tipos sao gerados pelo MCP tambem. Informar a senha so se quiser rodar a CLI localmente |
-| B5 | Tela de Perfil nunca rodou com uma conta de verdade | Foto, salvar dados e troca de senha compilam e estao escritos, mas eu nao consigo entrar para conferir na tela, porque nao digito senha | Rodolfo entra, abre o Perfil, troca a foto e salva o nome. Se algo sair torto, e so avisar |
+| B5 | Tela de Perfil nunca rodou com uma conta de verdade | Foto, salvar dados e troca de senha compilam e estao escritos, mas nao conferi na tela | Rodolfo abre o Perfil, troca a foto e salva o nome. Se algo sair torto, e so avisar |
 
 Nenhum bloqueio impede o andamento dos epicos 1 e 2.
 
@@ -45,6 +45,9 @@ Nenhum bloqueio impede o andamento dos epicos 1 e 2.
 | 14/09/2026 | Cadastro fechado de vez: o botao de primeiro acesso saiu da tela e o convite passou a valer uma vez so | Epico 4 |
 | 14/09/2026 | O Sheet fica sempre no DOM e so troca de classe, como no prototipo, em vez de montar e desmontar. Montar na hora criava corrida com a classe `open` e a transicao de entrada nao acontecia. Fechado, recebe `inert` | Epico 4 |
 | 14/09/2026 | O catalogo do design system em `/catalogo` e ferramenta de desenvolvimento: existe so no `pnpm dev` e some do build de producao, onde a rota cai no nao encontrado, atras do login como todas as outras | Epico 4 |
+| 14/09/2026 | Excluir carteira nao apaga historico: sem movimento a carteira some de vez, com movimento ela e arquivada (`ativo = false`) e sai das telas. Conta com investimento aplicado nao sai de jeito nenhum | Epico 5 |
+| 14/09/2026 | O formulario de conta ganhou o campo Descricao, que o prototipo nao tem. Sem ele o "Ag 0912 · CC 34871-2" que aparece na linha da conta nunca poderia ser preenchido | Epico 5 |
+| 14/09/2026 | Pagar um lancamento nao mexe no saldo da conta. O saldo so muda por ajuste, como no prototipo. Quem acompanha o realizado e o Balanco | Epico 5 |
 | 14/09/2026 | **Virada de mes: contas fixas de valor variavel nascem SEM valor**, com o dot vermelho de notificacao ate o valor ser preenchido. Isso substitui a regra da media dos 3 ultimos pagos que estava na secao 4.1 do documento mestre e na `fn_virada_mes` da especificacao tecnica | Bloco 5, resposta explicita do Rodolfo |
 
 ## Suposicoes assumidas
@@ -71,7 +74,7 @@ Quando faltar resposta e o padrao sugerido for usado, registrar aqui para valida
 | 2 | Banco de dados e seguranca | concluido | epico/2-banco-e-seguranca | 14/09/2026 |
 | 3 | Autenticacao e Perfil | concluido | epico/3-auth-e-perfil | 14/09/2026 |
 | 4 | Design system | concluido | epico/4-design-system | 14/09/2026 |
-| 5 | Carteiras | a fazer | epico/5-carteiras | |
+| 5 | Carteiras | concluido | epico/5-carteiras | 14/09/2026 |
 | 6 | Categorias e Investimentos | a fazer | epico/6-categorias-e-investimentos | |
 | 7 | Lancamentos | a fazer | epico/7-lancamentos | |
 | 8 | Automacoes no banco | a fazer | epico/8-automacoes-no-banco | |
@@ -98,6 +101,12 @@ Status possiveis: a fazer, em andamento, concluido, bloqueado.
 - Feito: leitura dos cinco documentos; copia do CLAUDE.md para a raiz e dos demais para `docs/`; `.gitignore`, `.env.example` e `.env.local` preenchido com a URL e a anon key do projeto ESTLIM-Finance (confirmado fora do versionamento); levantamento do ambiente (Node 24.14, pnpm 11.1.3, git 2.53, sem gh, sem CLI da Vercel e sem CLI do Supabase); confirmacao de que o banco esta vazio; entrevista dos blocos 1 a 5; primeiro commit local (`fdf6076`).
 - Pendente: push para o GitHub (B1), projeto e variaveis na Vercel (B2 e B3).
 - Proximo passo: Epico 1, fundacao tecnica.
+
+### Sessao 1 · 14/09/2026 · Epico 5
+- Feito: CRUD de contas e cartoes com seletor de banco (17 marcas mais a opcao de digitar), cor em gradiente, bandeira, funcao, limite, usado e os dias de fechamento e vencimento; tela Carteira com seletor de perfil filtrando card e listas, cores por perfil, contas e cartoes agrupados por dono; ajuste de saldo com motivo obrigatorio. Ajuste e exclusao viraram funcoes no banco, numa transacao so.
+- Testado por SQL: motivo em branco nao ajusta e o saldo fica intacto, valor zero recusado, entrada e retirada corretas, lancamento espelho pago na categoria Ajuste de saldo com data e hora, e conta com historico arquivada em vez de apagada.
+- Testado na tela, com dados de verdade que criei e apaguei depois: criar conta, criar cartao, editar cartao, ajuste sem motivo barrado com o saldo intacto, ajuste com motivo aplicado, exclusao de cartao sem historico e arquivamento da conta com historico. Conferido no desktop no tema claro e no mobile no tema escuro.
+- Proximo passo: Epico 6, categorias e investimentos.
 
 ### Sessao 1 · 14/09/2026 · Epico 4
 - Feito: Sheet completo (bottom sheet no mobile, modal centralizado no desktop, cabecalho e rodape parados, sombra sob o titulo ao rolar, fecha por X, fundo e Esc, `inert` quando fechado); CheckCircle, Chip, MiniBadge, StatusBadge, CardGradiente, seletor de cor em gradiente, seletor de cor solida, seletor com os 40 icones, campos mascarados de data, hora, telefone e moeda, botoes, lixeira, logos de banco, bandeiras, numero que conta, confete e revelacao ao rolar. Catalogo em `/catalogo` para conferencia.
