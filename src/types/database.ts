@@ -49,6 +49,7 @@ export type Database = {
           tipo?: Database['public']['Enums']['ajuste_tipo']
           valor?: number
         }
+        Relationships: []
       }
       balancos: {
         Row: {
@@ -90,6 +91,7 @@ export type Database = {
           receitas_previstas?: number | null
           receitas_realizadas?: number | null
         }
+        Relationships: []
       }
       carteiras: {
         Row: {
@@ -152,6 +154,7 @@ export type Database = {
           tipo?: Database['public']['Enums']['carteira_tipo']
           usado?: number
         }
+        Relationships: []
       }
       casais: {
         Row: {
@@ -169,6 +172,7 @@ export type Database = {
           id?: string
           nome?: string
         }
+        Relationships: []
       }
       categorias: {
         Row: {
@@ -198,6 +202,7 @@ export type Database = {
           orcamento_mensal?: number
           protegida?: boolean
         }
+        Relationships: []
       }
       corretoras: {
         Row: {
@@ -224,6 +229,7 @@ export type Database = {
           logo_url?: string | null
           nome?: string
         }
+        Relationships: []
       }
       investimentos: {
         Row: {
@@ -268,6 +274,7 @@ export type Database = {
           sub?: Database['public']['Enums']['invest_sub']
           valor?: number
         }
+        Relationships: []
       }
       lancamentos: {
         Row: {
@@ -342,6 +349,7 @@ export type Database = {
           tipo_valor?: Database['public']['Enums']['valor_tipo']
           valor_previsto?: number | null
         }
+        Relationships: []
       }
       pagamentos: {
         Row: {
@@ -377,6 +385,7 @@ export type Database = {
           lancamento_id?: string
           valor_pago?: number
         }
+        Relationships: []
       }
       perfis: {
         Row: {
@@ -403,6 +412,7 @@ export type Database = {
           nome?: string
           telefone?: string | null
         }
+        Relationships: []
       }
     }
     Views: {
@@ -433,6 +443,7 @@ export type Database = {
           valor_exibido: number | null
           valor_previsto: number | null
         }
+        Relationships: []
       }
     }
     Functions: {

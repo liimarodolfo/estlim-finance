@@ -1,0 +1,112 @@
+/* Tela de login. O prototipo v40 nao cobre autenticacao, entao esta e a unica
+   tela desenhada fora dele. Nao inventa linguagem nova: usa os mesmos tokens,
+   o mesmo card de gradiente, os mesmos campos, chips e botoes do design system. */
+
+.login-tela {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px var(--pad) calc(24px + env(safe-area-inset-bottom));
+}
+
+.login-caixa {
+  width: 100%;
+  max-width: 420px;
+}
+
+.login-hero {
+  text-align: center;
+  padding: 30px 24px;
+  margin-bottom: 18px;
+}
+
+.login-hero .logo-wrap {
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.login-hero .logo-mark rect,
+.login-hero .logo-mark path {
+  stroke: #fff;
+}
+
+.login-hero .logo-text {
+  color: #fff;
+}
+
+.login-hero p {
+  font-size: 13px;
+  opacity: 0.88;
+  line-height: 1.5;
+}
+
+.login-abas {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.login-abas .chip {
+  flex: 1;
+  text-align: center;
+}
+
+.login-erro {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: var(--expense-soft);
+  color: var(--expense);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 14px;
+  line-height: 1.45;
+}
+
+.login-aviso {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: var(--income-soft);
+  color: var(--income);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 14px;
+  line-height: 1.45;
+}
+
+.login-rodape {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.login-rodape button {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 12.5px;
+}
+
+/* Tela de espera enquanto a sessao e conferida, para nao piscar o login. */
+.carregando-tela {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  color: var(--muted-soft);
+  font-size: 22px;
+}
+
+.carregando-tela i {
+  animation: girando 1s linear infinite;
+}
+
+@keyframes girando {
+  to {
+    transform: rotate(360deg);
+  }
+}

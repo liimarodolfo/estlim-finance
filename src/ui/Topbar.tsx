@@ -2,11 +2,14 @@ import { useNavigate } from 'react-router-dom'
 import { Logo } from '@/ui/Logo'
 import { MesPills } from '@/ui/MesPills'
 import { useTema } from '@/store/useTema'
+import { usePerfil } from '@/hooks/usePerfil'
+import { iniciais } from '@/lib/formatters'
 
 export function Topbar() {
   const tema = useTema((e) => e.tema)
   const alternar = useTema((e) => e.alternar)
   const navigate = useNavigate()
+  const { data: perfil } = usePerfil()
 
   return (
     <header className="topbar">
@@ -35,7 +38,11 @@ export function Topbar() {
             aria-label="Perfil"
             onClick={() => navigate('/perfil')}
           >
-            RT
+            {perfil?.fotoAssinada ? (
+              <img src={perfil.fotoAssinada} alt="Perfil" />
+            ) : (
+              iniciais(perfil?.nome ?? '')
+            )}
           </button>
         </div>
       </div>

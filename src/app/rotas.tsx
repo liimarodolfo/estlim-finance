@@ -8,11 +8,16 @@ import Agenda from '@/features/agenda/Agenda'
 import Categorias from '@/features/categorias/Categorias'
 import Perfil from '@/features/perfil/Perfil'
 import { NaoEncontrada } from '@/app/NaoEncontrada'
+import { ExigeLogin } from '@/app/ExigeLogin'
 
 export const rotas = createBrowserRouter([
   {
     path: '/',
-    element: <Shell />,
+    element: (
+      <ExigeLogin>
+        <Shell />
+      </ExigeLogin>
+    ),
     children: [
       { index: true, element: <Dashboard /> },
       { path: 'lancamentos', element: <Lancamentos /> },

@@ -64,3 +64,10 @@ export const MESES_LONGOS = [
   'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
   'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
 ] as const
+
+/** Duas iniciais do nome, usadas no avatar quando nao ha foto. */
+export const iniciais = (nome: string): string => {
+  const partes = nome.trim().split(/\s+/)
+  const letras = ((partes[0]?.[0] ?? '') + (partes[1]?.[0] ?? '')).toUpperCase()
+  return letras || 'US'
+}
