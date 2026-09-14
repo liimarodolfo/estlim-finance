@@ -23,10 +23,11 @@ pnpm types:supabase
 | `0003_storage.sql` | Buckets `avatares` e `corretoras`, privados, 2 MB, so imagem |
 | `0004_endurecimento.sql` | Revogacoes sugeridas pelo linter. Quebrou o RLS e foi corrigida pela seguinte |
 | `0005_meu_casal_em_schema_privado.sql` | Move `meu_casal()` para o schema `private` e refaz as policies |
+| `0006_convites_e_perfil_no_cadastro.sql` | Tabela `convites` e o gatilho que abre o perfil no cadastro |
 
 A numeracao 0003, 0004 e 0005 estava reservada na especificacao tecnica para funcoes,
 triggers e cron. Como storage e o ajuste de seguranca entraram antes, o Epico 8 comeca
-em `0006_functions.sql`.
+em `0007_functions.sql`.
 
 ## Decisoes que valem lembrar
 
@@ -37,6 +38,10 @@ em `0006_functions.sql`.
   que chama, e sem isso o RLS inteiro para de responder.
 - A view `v_lancamentos` usa `security_invoker = true`. Sem isso a view rodaria com os
   direitos do dono e furaria o RLS.
+- O cadastro e fechado por convite. Como o app usa a anon key, a rota de signup fica
+  aberta na internet; o gatilho `private.fn_perfil_no_cadastro()` recusa qualquer e-mail
+  que nao esteja em `convites` e, para os convidados, ja cria o perfil no casal certo.
+  Liberar mais alguem depois e uma linha em `convites`.
 - Tres regras de negocio ja estao no schema, nao so na tela: motivo de ajuste obrigatorio,
   valor obrigatorio quando o lancamento e de valor fixo, e aporte nunca no credito.
 
