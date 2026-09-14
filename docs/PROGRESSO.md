@@ -10,8 +10,7 @@ Arquivo vivo. O Claude Code le no inicio de toda sessao e atualiza ao fim de cad
 | B2 | Projeto na Vercel ainda nao criado | Sem deploy publicado | Precisa do teamId da conta pessoal (a conta Hobby nao aparece em `list_teams`) e de um build valido no repositorio. Fica para o fim do Epico 1, quando existir app para buildar |
 | B3 | Variaveis de ambiente na Vercel nao cadastradas | Build publicado sem Supabase | Depende de B2. As tres variaveis estao em `.env.example` |
 | B4 | Senha do banco Supabase (`SUPABASE_DB_PASSWORD`) nao informada | `pnpm types:supabase` e a CLI nao rodam | Contornado: as migrations vao pelo MCP e os tipos sao gerados pelo MCP tambem. Informar a senha so se quiser rodar a CLI localmente |
-| B5 | Ninguem fez o primeiro acesso ainda | O fluxo de login, perfil, foto e troca de senha esta escrito e compila, mas nunca rodou com uma conta de verdade. Nao posso criar conta nem digitar senha por voce | Rodolfo abre o app, clica em Primeiro acesso com rodolfo@rliima.com e escolhe a senha. A Thainy faz o mesmo com o e-mail dela |
-| B6 | Envio de e-mail do Supabase nao testado | Se o SMTP padrao estiver restrito aos membros do projeto, o link de confirmacao pode nao chegar em @rliima.com | Se nao chegar, desligar "Confirm email" em Authentication > Sign In / Providers > Email no painel. A tabela `convites` ja garante que so os dois e-mails conseguem se cadastrar |
+| B5 | Tela de Perfil nunca rodou com uma conta de verdade | Foto, salvar dados e troca de senha compilam e estao escritos, mas eu nao consigo entrar para conferir na tela, porque nao digito senha | Rodolfo entra, abre o Perfil, troca a foto e salva o nome. Se algo sair torto, e so avisar |
 
 Nenhum bloqueio impede o andamento dos epicos 1 e 2.
 
@@ -43,6 +42,9 @@ Nenhum bloqueio impede o andamento dos epicos 1 e 2.
 | 14/09/2026 | Cadastro fechado por convite. A tabela `convites` guarda os e-mails liberados e um gatilho recusa qualquer outro no proprio banco, ja que a rota de signup fica aberta na internet com a anon key | Epico 3 |
 | 14/09/2026 | A tela de login e a unica desenhada fora do prototipo, que nao cobre autenticacao. Usa so os tokens e componentes que ja existem, sem linguagem visual nova | Epico 3 |
 | 14/09/2026 | A troca de senha reautentica com a senha atual antes de trocar, porque o Supabase nao confere sozinho no `updateUser` | Epico 3 |
+| 14/09/2026 | Cadastro fechado de vez: o botao de primeiro acesso saiu da tela e o convite passou a valer uma vez so | Epico 4 |
+| 14/09/2026 | O Sheet fica sempre no DOM e so troca de classe, como no prototipo, em vez de montar e desmontar. Montar na hora criava corrida com a classe `open` e a transicao de entrada nao acontecia. Fechado, recebe `inert` | Epico 4 |
+| 14/09/2026 | O catalogo do design system em `/catalogo` e ferramenta de desenvolvimento: existe so no `pnpm dev` e some do build de producao, onde a rota cai no nao encontrado, atras do login como todas as outras | Epico 4 |
 | 14/09/2026 | **Virada de mes: contas fixas de valor variavel nascem SEM valor**, com o dot vermelho de notificacao ate o valor ser preenchido. Isso substitui a regra da media dos 3 ultimos pagos que estava na secao 4.1 do documento mestre e na `fn_virada_mes` da especificacao tecnica | Bloco 5, resposta explicita do Rodolfo |
 
 ## Suposicoes assumidas
@@ -68,7 +70,7 @@ Quando faltar resposta e o padrao sugerido for usado, registrar aqui para valida
 | 1 | Fundacao tecnica | concluido | epico/1-fundacao-tecnica | 14/09/2026 |
 | 2 | Banco de dados e seguranca | concluido | epico/2-banco-e-seguranca | 14/09/2026 |
 | 3 | Autenticacao e Perfil | concluido | epico/3-auth-e-perfil | 14/09/2026 |
-| 4 | Design system | a fazer | epico/4-design-system | |
+| 4 | Design system | concluido | epico/4-design-system | 14/09/2026 |
 | 5 | Carteiras | a fazer | epico/5-carteiras | |
 | 6 | Categorias e Investimentos | a fazer | epico/6-categorias-e-investimentos | |
 | 7 | Lancamentos | a fazer | epico/7-lancamentos | |
@@ -97,10 +99,16 @@ Status possiveis: a fazer, em andamento, concluido, bloqueado.
 - Pendente: push para o GitHub (B1), projeto e variaveis na Vercel (B2 e B3).
 - Proximo passo: Epico 1, fundacao tecnica.
 
+### Sessao 1 · 14/09/2026 · Epico 4
+- Feito: Sheet completo (bottom sheet no mobile, modal centralizado no desktop, cabecalho e rodape parados, sombra sob o titulo ao rolar, fecha por X, fundo e Esc, `inert` quando fechado); CheckCircle, Chip, MiniBadge, StatusBadge, CardGradiente, seletor de cor em gradiente, seletor de cor solida, seletor com os 40 icones, campos mascarados de data, hora, telefone e moeda, botoes, lixeira, logos de banco, bandeiras, numero que conta, confete e revelacao ao rolar. Catalogo em `/catalogo` para conferencia.
+- Testado no catalogo: mascaras (22081990 vira 22/08/1990, 1945 vira 19:45, 123456 vira R$ 1.234,56 e a data volta como 1990-08-22 em ISO), sheet nos dois tamanhos de tela e nos dois temas, sombra do cabecalho ao rolar, fechamento por X e por Esc, FAB virando X enquanto o sheet esta aberto.
+- Dois defeitos encontrados e corrigidos: a revelacao ao rolar filtrava por `data-reveal` e, com o StrictMode montando o efeito duas vezes, a segunda passada nao observava nada e tudo abaixo da dobra ficava invisivel; e o check das bolinhas de cor saia como quadrado vazio porque o prototipo embute a FontAwesome com outro nome de familia.
+- Proximo passo: Epico 5, carteiras.
+
 ### Sessao 1 · 14/09/2026 · Epico 3
 - Feito: cadastro fechado por convite, com gatilho que abre o perfil no casal certo; tela de login com entrar, primeiro acesso e recuperacao de senha, mensagens do Supabase traduzidas; guarda que impede qualquer rota sem sessao; tela de Perfil completa com foto no bucket privado (pasta por usuario, 2 MB, tipo validado, URL assinada na leitura), nome, e-mail, telefone mascarado, troca de senha com reautenticacao e sair da conta; avatar da topbar com foto ou iniciais; fila de toasts e campo de senha com olho, adiantados do Epico 4.
 - Testado: o gatilho recusa e-mail sem convite e cria o perfil para os convidados; a tela de login e a validacao conferidas no mobile e no desktop, nos dois temas. O fluxo com conta de verdade nao foi testado (B5), porque nao crio conta nem digito senha.
-- Pendente: primeiro acesso do Rodolfo e da Thainy (B5) e conferencia do envio de e-mail (B6).
+- Pendente: as contas foram criadas, confirmadas e ja entraram no app. Falta so conferir a tela de Perfil com uma conta de verdade (B5).
 - Proximo passo: Epico 4, design system.
 
 ### Sessao 1 · 14/09/2026 · Epico 2
