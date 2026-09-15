@@ -17,9 +17,13 @@ type Props = {
   aoCriarAjuste: () => void
 }
 
+// Previsto e realizado são de competência: na fatura do cartão valem o líquido,
+// já descontado o que foi lançado em detalhe. Caixa é outra pergunta, e tem o
+// próprio somador, porque o banco cobra a fatura cheia.
 const previsto = (arr: LancamentoComBaixa[]) => arr.reduce((s, l) => s + (l.valor_exibido ?? 0), 0)
 const realizado = (arr: LancamentoComBaixa[]) =>
-  arr.reduce((s, l) => s + (l.pagamento?.valor_pago ?? 0), 0)
+  arr.reduce((s, l) => s + (l.valor_realizado ?? 0), 0)
+const caixa = (arr: LancamentoComBaixa[]) => arr.reduce((s, l) => s + (l.valor_caixa ?? 0), 0)
 
 /** A variação entre previsto e realizado, verde quando o resultado é bom. */
 function Variacao({ real, prev, bomQuandoMenor }: { real: number; prev: number; bomQuandoMenor: boolean }) {
@@ -105,7 +109,7 @@ export function Balanco({
   const semValor = lancamentos.filter((l) => l.valor_exibido == null && l.status !== 'pago').length
 
   const aReceber = previsto(receitas.filter((l) => l.status !== 'pago'))
-  const aPagar = previsto(despesas.filter((l) => l.status !== 'pago'))
+  const aPagar = caixa(despesas.filter((l) => l.status !== 'pago'))
   const aInvestir = previsto(aportes.filter((l) => l.status !== 'pago'))
   const saldoContas = carteiras.filter((c) => c.tipo === 'conta').reduce((s, c) => s + c.saldo, 0)
   const projecao = saldoContas + aReceber - aPagar - aInvestir
@@ -124,7 +128,7 @@ export function Balanco({
       real: 0,
     }
     atual.prev += l.valor_exibido ?? 0
-    atual.real += l.pagamento?.valor_pago ?? 0
+    atual.real += l.valor_realizado ?? 0
     porCategoria.set(chave, atual)
   }
 
@@ -140,7 +144,7 @@ export function Balanco({
       real: 0,
     }
     atual.prev += l.valor_exibido ?? 0
-    atual.real += l.pagamento?.valor_pago ?? 0
+    atual.real += l.valor_realizado ?? 0
     porInvestimento.set(chave, atual)
   }
 
@@ -212,7 +216,7 @@ export function Balanco({
                 key={l.id}
                 nome={l.descricao!}
                 prev={l.valor_exibido ?? 0}
-                real={l.pagamento?.valor_pago ?? 0}
+                real={l.valor_realizado ?? 0}
                 bomQuandoMenor={false}
               />
             ))

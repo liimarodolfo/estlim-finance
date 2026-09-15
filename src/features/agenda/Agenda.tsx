@@ -136,7 +136,7 @@ export default function Agenda() {
                     ) : (
                       <b>
                         {aporte ? '↗' : receita ? '+' : '−'}{' '}
-                        {fmtMoeda(l.pagamento?.valor_pago ?? l.valor_exibido ?? 0)}
+                        {fmtMoeda(l.valor_realizado ?? l.valor_exibido ?? 0)}
                       </b>
                     )}
                     <StatusBadge status={l.status!} tipo={l.tipo} />

@@ -36,6 +36,7 @@ pnpm types:supabase
 | `0016_categoria_por_tipo.sql` | Categoria passa a dizer se serve a despesa, a receita ou a ambas |
 | `0017_observacoes_comprovante_e_baixa_no_cadastro.sql` | Colunas novas em `lancamentos`, bucket `comprovantes` e o check de ja pago no cadastro |
 | `0018_saldo_automatico_das_contas.sql` | Gatilho que faz o saldo da conta seguir os pagamentos, mais o recalculo retroativo |
+| `0019_fatura_liquida_e_credito_ja_pago.sql` | Fatura desconta o que ja foi lancado em detalhe, despesa no credito nasce paga, e o pagamento passa a bastar-se para ser desfeito |
 
 A numeracao 0003, 0004 e 0005 estava reservada na especificacao tecnica para funcoes,
 triggers e cron. Como storage e o ajuste de seguranca entraram antes, a ordem do disco
@@ -49,9 +50,29 @@ deixou de bater com a do documento. Vale a ordem do disco.
   referencia aponta para uma carteira `tipo = 'conta'`: cartao de credito e as
   referencias de dinheiro (`'Rodolfo'`, `'Thainy'`) passam batido, e por isso o teste de
   formato de uuid vem antes do cast, senao a baixa em dinheiro estouraria.
-- O `usado` do cartao continua sendo preenchido a mao, de proposito. Somar toda despesa
-  no credito ao limite utilizado quebraria a fatura automatica em compra parcelada, que
-  gera as N parcelas de uma vez.
+- O `usado` do cartao continua sendo preenchido a mao, de proposito: e o valor fechado
+  da fatura, copiado do app do banco. Somar toda despesa no credito a ele quebraria a
+  fatura automatica em compra parcelada, que gera as N parcelas de uma vez.
+- **Caixa e competencia sao numeros diferentes, e a view expoe os dois.** `valor_caixa`
+  e o que sai da conta quando a fatura for paga, sempre o valor cheio. `valor_exibido` e
+  `valor_realizado` sao de competencia: na fatura valem o liquido, ja sem o que foi
+  lancado em detalhe naquele ciclo. Somar o caixa no balanco conta a mesma compra duas
+  vezes; somar o liquido na projecao deixa o casal otimista no valor do detalhado.
+- **A fatura paga congela sozinha**, porque `valor_caixa` cai em `pagamentos.valor_pago`
+  quando existe baixa. Nao ha gatilho de congelamento, e por isso nao ha dependencia da
+  ordem alfabetica dos gatilhos de `pagamentos`.
+- **Fora do ciclo aberto a fatura nao le o `usado`.** Ele e um numero so, do mes corrente,
+  nao uma serie. A fatura de um mes passado usa o que `fn_virada_mes` congelou em
+  `valor_previsto` antes de replicar. Sem isso, duas faturas em aberto mostrariam o mesmo
+  valor e a duplicacao voltaria por outra porta.
+- **O pagamento guarda `lanc_tipo` e `cartao_id`.** Nao e estado duplicado por descuido:
+  na exclusao em cascata o lancamento pai ja nao existe, e consultar ele ali fazia o
+  saldo somar em vez de subtrair (erro de 2x em receita) e a fatura nunca devolver o
+  limite. O pagamento e um fato historico e precisa bastar-se para ser desfeito.
+- **Despesa no credito nasce paga por gatilho em `lancamentos`, nao na RPC.** Ha tres
+  caminhos de escrita (a funcao, o update da tela de edicao e o insert da virada de mes)
+  e a regra vale nos tres. A guarda `valor_previsto > 0` e obrigatoria: sem ela a virada
+  de mes estoura o `not null` de `valor_pago` dentro do cron, para todos os casais.
 - O comprovante guarda o caminho no bucket, nunca a URL assinada. Link assinado vence; o
   caminho nao.
 

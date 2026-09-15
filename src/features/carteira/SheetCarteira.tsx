@@ -246,6 +246,11 @@ export function SheetCarteira({ aberto, aoFechar, carteira, tipoInicial, donoIni
               <InputMoeda id="wLimite" valor={limite} aoMudar={setLimite} />
             </Campo>
           </div>
+          <div className="bl-formula">
+            Em Usado, digite o valor fechado da fatura, como aparece no app do banco. As compras que
+            você já lançou em detalhe são descontadas dele sozinhas, então a fatura na lista mostra
+            só o que ainda não foi detalhado.
+          </div>
           <div className="field-row">
             <Campo id="wUsado" rotulo="Usado (R$)" icone="fa-cart-shopping">
               <InputMoeda id="wUsado" valor={usado} aoMudar={setUsado} />

@@ -58,7 +58,12 @@ export function SheetLancamento({ aberto, aoFechar, lancamento, tipoInicial }: P
   const [pagarA, setPagarA] = useState(lancamento?.pagar_a ?? '')
   const [natureza, setNatureza] = useState<Natureza>(lancamento?.natureza ?? 'avulsa')
   const [tipoValor, setTipoValor] = useState<TipoValor>(lancamento?.tipo_valor ?? 'fixo')
-  const [valor, setValor] = useState<number | null>(lancamento?.valor_previsto ?? null)
+  // Na fatura o valor previsto fica nulo de propósito: quem manda é o usado do
+  // cartão. Mostrar o de caixa deixa o campo honesto, e o aviso logo acima já
+  // explica que ele não se edita aqui.
+  const [valor, setValor] = useState<number | null>(
+    (lancamento?.cartao_id ? lancamento.valor_caixa : lancamento?.valor_previsto) ?? null,
+  )
   const [parcelas, setParcelas] = useState(String(lancamento?.parcela_total ?? ''))
   const [emissao, setEmissao] = useState(fmtData(lancamento?.data_emissao ?? null))
   const [vencimento, setVencimento] = useState(fmtData(lancamento?.data_vencimento ?? null))
@@ -86,6 +91,9 @@ export function SheetLancamento({ aberto, aoFechar, lancamento, tipoInicial }: P
   const aporte = tipo === 'investimento'
   const parcelada = natureza === 'parcelada'
   const rotuloBaixa = aporte ? 'aplicado' : tipo === 'receita' ? 'recebida' : 'paga'
+  // No crédito a baixa não é escolha: quem quitou a compra foi a operadora, e a
+  // dívida migrou para a fatura. O banco cuida disso por gatilho.
+  const noCredito = metodo === 'credito' && !ehFatura
 
   const metodosDisponiveis = metodosPara(tipo)
   const fontes = fontesPara(metodo, carteiras)
@@ -186,7 +194,7 @@ export function SheetLancamento({ aberto, aoFechar, lancamento, tipoInicial }: P
       toast('Cadastre um investimento antes de lançar um aporte', 'fa-triangle-exclamation')
       return
     }
-    if (marcarPago || jaPago) {
+    if (!noCredito && (marcarPago || jaPago)) {
       if (!paraISO(dataPaga)) {
         toast('Informe a data do pagamento no formato DD/MM/AAAA', 'fa-triangle-exclamation')
         return
@@ -246,17 +254,19 @@ export function SheetLancamento({ aberto, aoFechar, lancamento, tipoInicial }: P
         await criar.mutateAsync({
           ...dados,
           parcelas: parcelada ? Number(parcelas) : 1,
-          pago: marcarPago,
-          pago_data: marcarPago ? paraISO(dataPaga) : null,
-          pago_hora: marcarPago ? `${horaPaga}:00` : null,
+          pago: marcarPago && !noCredito,
+          pago_data: marcarPago && !noCredito ? paraISO(dataPaga) : null,
+          pago_hora: marcarPago && !noCredito ? `${horaPaga}:00` : null,
         })
         toast(
           parcelada
-            ? `${parcelas} parcelas criadas, uma por mês${marcarPago ? `, a primeira já ${rotuloBaixa}` : ''}`
-            : marcarPago
-              ? `Lançamento criado e marcado como ${rotuloBaixa}`
-              : 'Lançamento criado',
-          parcelada ? 'fa-layer-group' : 'fa-circle-check',
+            ? `${parcelas} parcelas criadas, uma por mês${noCredito ? ', todas na fatura do cartão' : marcarPago ? `, a primeira já ${rotuloBaixa}` : ''}`
+            : noCredito
+              ? 'Lançamento criado e somado à fatura do cartão'
+              : marcarPago
+                ? `Lançamento criado e marcado como ${rotuloBaixa}`
+                : 'Lançamento criado',
+          parcelada ? 'fa-layer-group' : noCredito ? 'fa-credit-card' : 'fa-circle-check',
         )
       }
       aoFechar()
@@ -423,7 +433,18 @@ export function SheetLancamento({ aberto, aoFechar, lancamento, tipoInicial }: P
         </Campo>
       </div>
 
-      {!editando ? (
+      {noCredito ? (
+        <div className="check-linha">
+          <CheckCircle concluido rotulo="paga" desabilitado aoClicar={() => {}} />
+          <div>
+            <b>Já entra como paga</b>
+            <span>
+              No crédito quem quitou a compra foi a operadora. A dívida vai para a fatura do cartão,
+              que é paga depois, então nenhuma conta se move agora.
+            </span>
+          </div>
+        </div>
+      ) : !editando ? (
         <div
           className="check-linha"
           role="button"
@@ -455,7 +476,7 @@ export function SheetLancamento({ aberto, aoFechar, lancamento, tipoInicial }: P
         </div>
       ) : null}
 
-      {jaPago || marcarPago ? (
+      {!noCredito && (jaPago || marcarPago) ? (
         <div className="field-row">
           <Campo
             id="fPagoData"

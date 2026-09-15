@@ -75,7 +75,7 @@ export default function Lancamentos() {
   const grupos = useMemo(() => {
     if (filtro !== 'todos') return null
     const soma = (arr: LancamentoComBaixa[]) =>
-      arr.reduce((s, l) => s + (l.pagamento?.valor_pago ?? l.valor_exibido ?? 0), 0)
+      arr.reduce((s, l) => s + (l.valor_realizado ?? l.valor_exibido ?? 0), 0)
     return [
       { titulo: 'A pagar', icone: 'fa-arrow-up-from-bracket', itens: filtrados.filter((l) => l.tipo === 'despesa' && l.status !== 'pago') },
       { titulo: 'A receber', icone: 'fa-hand-holding-dollar', itens: filtrados.filter((l) => l.tipo === 'receita' && l.status !== 'pago') },
