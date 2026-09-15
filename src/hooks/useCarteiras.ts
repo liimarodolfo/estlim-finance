@@ -16,7 +16,6 @@ export type NovaCarteira = {
   bandeira: string | null
   funcao: string | null
   limite: number
-  usado: number
   dia_fechamento: number | null
   dia_vencimento: number | null
 }

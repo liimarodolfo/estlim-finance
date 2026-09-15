@@ -56,7 +56,12 @@ Você conduz o projeto épico a épico, sem pedir aprovação a cada passo. Aja 
 ### Regras de negócio que não podem ser simplificadas
 Estão detalhadas na seção 4 do documento mestre. As cinco mais sensíveis:
 1. O check de baixa captura data e hora do clique. A baixa da despesa no crédito é a única exceção, porque não há clique: ela nasce junto com o lançamento, na data de emissão da compra.
-2. A fatura automática do cartão reflete o limite utilizado **menos o que já foi lançado em detalhe naquele ciclo**, senão a mesma compra conta duas vezes, na fatura e na própria linha. Pagá-la zera o limite, e o que sai da conta é sempre o valor cheio. Decisão do Rodolfo em 15/09/2026.
+2. A fatura do cartão tem dois tempos, decisão do Rodolfo em 15/09/2026:
+   - **Aberta**, ela vale a soma das compras lançadas naquele ciclo e acumula sozinha. Ninguém digita o valor.
+   - **Fechada**, ela vale o valor confirmado pelo usuário, que nunca pode ser menor que essa soma. O que passa dela é o excedente: o que entrou na fatura sem ter sido lançado em detalhe. Sem isso a mesma compra contaria duas vezes, na fatura e na própria linha.
+   - `carteiras.usado` é derivado, nunca digitado: é a soma das faturas ainda não pagas.
+   - O dia de fechamento do cartão decide em qual fatura a compra cai. Ciclo já fechado ou pago não recebe compra nova: ela vai para o próximo.
+   - Pagar a fatura tira o limite utilizado, e o que sai da conta é sempre o valor cheio, não o excedente.
    - Toda despesa no crédito nasce paga: quem quitou a compra foi a operadora, e a dívida migrou para a fatura, que é paga depois.
 3. Parcelas geram N lançamentos numerados X/N, com vencimento vindo do cartão quando a compra é no crédito.
 4. Ajuste de carteira exige motivo, validado antes de tocar no saldo.

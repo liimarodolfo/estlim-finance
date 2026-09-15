@@ -124,6 +124,51 @@ testado escrito na mensagem.
 
 ## Diario de sessoes
 
+### Sessao 4 · 15/09/2026 · A fatura acumula e fecha
+
+O Rodolfo apontou o buraco que a sessao 3 deixou. Ela resolveu a fatura JA
+FECHADA, descontando dela o que foi lancado em detalhe. Mas durante o ciclo
+aberto ele ainda nao sabe o valor fechado, e a fatura ficava em zero enquanto
+ele ia lancando compras. Nas palavras dele: "a somatoria no cartao vai
+automaticamente apenas pelos valores das despesas lancadas. Quando chegar a data
+de fechamento, nao pode mais lancar naquele cartao e temos que confirmar o valor
+final, podendo alterar sempre para mais, nunca para menos, e esse valor
+excedente entra como gastos Cartao de Credito".
+
+**O modelo novo.** A fatura tem dois tempos. Aberta, ela vale a soma das compras
+daquele ciclo e acumula sozinha: ninguem digita nada. Fechada, vale o valor
+confirmado, e o que passa da soma e o excedente, que e o que entrou nela sem ter
+sido lancado em detalhe. Fechar so vale do acumulado para cima.
+
+Com isso `carteiras.usado` deixou de ser um campo digitado e virou derivado: a
+soma das faturas que ainda nao foram pagas. O campo na tela da Carteira virou so
+leitura, e o fechamento passou para o "Adicionar valor" da propria fatura, na
+lista, que era onde ele ja pedia atencao.
+
+E o `dia_fechamento`, que estava no schema desde a 0001 sem nunca ser usado,
+passou a valer: a compra depois do fechamento vai para a proxima fatura, e um
+ciclo ja fechado ou pago nao recebe compra nova. Isso substitui a decisao da
+sessao 3 de o ciclo ser a data digitada.
+
+O `trg_fatura_pagamento` saiu de cena. Ele existia so para zerar e restaurar o
+`usado`; agora a fatura paga simplesmente sai da soma das que estao em aberto.
+Manter os dois seria ter duas fontes de verdade para o mesmo numero, com a ordem
+alfabetica dos gatilhos decidindo qual vence.
+
+Testado no banco e na tela: a fatura nasce aberta e vazia; duas compras a levam
+a R$ 244,70 com o `usado` acompanhando; fechar em R$ 100 e recusado com a
+mensagem certa; fechar em R$ 300 deixa R$ 55,30 de excedente; compra nova no
+ciclo fechado vai para outubro sozinha; compra em 03/09 fica em setembro e em
+20/09 vai para outubro, pelo dia de fechamento; pagar a fatura debita a conta em
+R$ 300 e o balanco conta so R$ 55,30; desfazer devolve tudo. O bloco 11 da suite
+foi reescrito para o modelo novo e passa inteiro, e o bloco 2 acompanhou, porque
+o `usado` nao e mais input.
+
+Confirmado tambem, a pedido dele: clicar no check de uma fatura ja abria a tela
+de confirmacao com data, hora, valor, forma de pagamento e conta. Isso ja valia
+desde o Epico 7, porque a fatura e de valor variavel e sempre passa por esse
+sheet. Nada precisou mudar.
+
 ### Sessao 3 · 15/09/2026 · Fatura liquida e credito que nasce pago
 
 O Rodolfo achou uma despesa contada duas vezes. Ele digita a mao o valor fechado
@@ -262,9 +307,8 @@ Corrigido de quebra: `supabase/testes/fluxos_criticos.sql` usava variaveis plpgs
 | `fn_virada_mes` da especificacao tecnica descreve a media dos 3 ultimos pagos | Contradiz a decisao de 14/09/2026. Implementar com valor nulo e corrigir o texto do documento no Epico 8 |
 | Recharts instalado e nao usado | Os graficos seguem o desenho do prototipo. Remover a dependencia se ficar decidido que nunca vai entrar |
 | Relatorio anual consolidado fora do escopo | Suposicao S7, para validar depois |
-| `usado` do cartao continua manual | E o valor fechado da fatura, copiado do app do banco. Somar a despesa no credito a ele quebraria a fatura automatica em compra parcelada: 5x890 inflaria o `usado` em 4.450 de uma vez |
-| `usado` e um escalar, nao um valor por ciclo | A fatura de um mes futuro le o limite utilizado de hoje. A virada de mes resolve para o passado, congelando; o futuro segue estimativa. Resolver de verdade pede um valor fechado de fatura por mes, que e outro epico |
-| `dia_fechamento` segue sem uso no banco | Decisao do Rodolfo em 15/09/2026: o ciclo e o mes do vencimento, e ele escolhe em qual fatura a compra entra pela data que digita. Uma compra feita entre o fechamento e o vencimento cai na fatura que ele mandar, nao na que o banco vai cobrar |
+| Fatura de mes futuro so existe depois da virada | As parcelas futuras ja nascem no ato da compra, uma por mes, e aparecem no mes delas. A fatura daquele mes so e criada na virada, e ate la nao ha excedente para mostrar, o que esta certo: ele e desconhecido |
+| "Usado nos cartoes" conta so os ciclos nao pagos | Uma compra em 5x aparece com R$ 890 neste mes, nao com os R$ 4.450 comprometidos no cartao de verdade. Decisao do Rodolfo em 15/09/2026 |
 | Baixa parcial da fatura reescreve o previsto do mes | Ela zera o `usado` do mesmo jeito e congela o caixa no valor pago. Herdado, e agora mais visivel |
 | Anexo enviado com a sheet fechada sem salvar fica no bucket | Ja registrado na sessao 2; o botao de remover cobre o caso deliberado |
 | Anexo enviado e sheet fechada sem salvar deixa o arquivo no bucket | O botao de remover cobre o caso deliberado. Limpeza periodica ou varredura de orfaos resolve o resto |

@@ -42,13 +42,29 @@ export function LinhaLancamento({
   const mesDaFatura = MESES[new Date(`${l.data_vencimento}T12:00:00`).getMonth()]
   const anoDaFatura = l.data_vencimento?.slice(0, 4) ?? ''
 
-  // A fatura vale o que o cartão ainda não teve detalhado. Sem dizer isso, o
-  // valor menor do que o da carteira parece defeito.
+  // A fatura tem dois tempos. Aberta, ela acumula as compras do ciclo sozinha e
+  // vale a soma delas. Fechada, vale o valor confirmado, e o que sobra do que
+  // não foi lançado em detalhe é o que aparece como gasto do cartão.
   const ehFatura = Boolean(l.cartao_id)
-  const descascada = ehFatura && (l.valor_detalhado ?? 0) > 0
+  const faturaAberta = Boolean(l.fatura_aberta)
+  const itens = l.itens_no_ciclo ?? 0
+  const descascada = ehFatura && !faturaAberta && (l.valor_detalhado ?? 0) > 0
+
+  // Passado o dia de fechamento, a fatura espera a confirmação do valor final.
+  const diaHoje = new Date().getDate()
+  const mesDaLinha = l.data_vencimento?.slice(0, 7) ?? ''
+  const mesCorrente = new Date().toISOString().slice(0, 7)
+  const jaFechou =
+    faturaAberta &&
+    l.cartao_fechamento != null &&
+    (mesDaLinha < mesCorrente || (mesDaLinha === mesCorrente && diaHoje > l.cartao_fechamento))
 
   const verbo = aporte ? 'Aplicado' : receita ? 'Recebido' : 'Pago'
-  const subtitulo = descascada
+  const subtitulo = faturaAberta
+    ? `${itens === 0 ? 'Nenhuma compra lançada' : `${itens} compra${itens > 1 ? 's' : ''} lançada${itens > 1 ? 's' : ''}`}${
+        l.cartao_fechamento != null ? ` · fecha dia ${l.cartao_fechamento}` : ''
+      }${jaFechou ? ' · confirme o valor fechado' : ''}`
+    : descascada
     ? `Fatura ${fmtMoeda(l.valor_caixa)} · ${fmtMoeda(l.valor_detalhado)} já lançados em detalhe`
     : noCredito && pago
       ? `Na fatura de ${mesDaFatura}/${anoDaFatura} · ${fmtMoeda(l.pagamento!.valor_pago)}`
@@ -56,9 +72,11 @@ export function LinhaLancamento({
         ? `${verbo} em ${fmtData(l.pagamento!.data_pagamento)} às ${fmtHora(l.pagamento!.hora_pagamento)} · ${fmtMoeda(l.pagamento!.valor_pago)}`
         : `${l.data_emissao ? `Emitida ${fmtData(l.data_emissao)} · ` : ''}Vence ${fmtData(l.data_vencimento)}${l.pagar_a ? ` · ${l.pagar_a}` : ''}`
 
-  const semValor = l.valor_exibido == null && !pago
+  const semValor = (l.valor_exibido == null && !pago) || jaFechou
   const sinal = aporte ? '↗' : receita ? '+' : '−'
-  const valorMostrado = l.valor_realizado ?? l.valor_exibido ?? 0
+  const valorMostrado = faturaAberta
+    ? (l.valor_caixa ?? 0)
+    : (l.valor_realizado ?? l.valor_exibido ?? 0)
 
   const rotuloCheck = aporte ? 'aplicado' : receita ? 'recebido' : 'pago'
   const natureza =
@@ -99,7 +117,7 @@ export function LinhaLancamento({
           <MiniBadge tom={natureza.tom}>{natureza.texto}</MiniBadge>
           {ehFatura ? (
             <MiniBadge tom="fat" icone="fa-credit-card">
-              Fatura automática
+              {faturaAberta ? 'Fatura aberta' : 'Fatura automática'}
             </MiniBadge>
           ) : null}
           {l.fatura_estourada ? (
@@ -142,8 +160,8 @@ export function LinhaLancamento({
               }
             }}
           >
-            <i className="fa-solid fa-tag" aria-hidden="true" />
-            Adicionar valor
+            <i className={`fa-solid ${jaFechou ? 'fa-file-invoice-dollar' : 'fa-tag'}`} aria-hidden="true" />
+            {jaFechou ? 'Confirmar fatura' : 'Adicionar valor'}
           </b>
         ) : (
           <b>

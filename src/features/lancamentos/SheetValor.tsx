@@ -3,7 +3,7 @@ import { Sheet } from '@/ui/Sheet'
 import { Campo } from '@/ui/Campo'
 import { InputMoeda } from '@/ui/InputMoeda'
 import { BotaoPill } from '@/ui/BotaoPill'
-import { fmtData } from '@/lib/formatters'
+import { fmtData, fmtMoeda } from '@/lib/formatters'
 import { mensagemDeErro } from '@/lib/erros'
 import { toast } from '@/store/useToasts'
 import { useDefinirValor, type LancamentoComBaixa } from '@/hooks/useLancamentos'
@@ -19,20 +19,40 @@ type Props = {
 /**
  * Preenche o valor de um lançamento variável que nasceu sem valor. Não dá baixa:
  * só tira o selo "Adicionar valor" da lista e devolve o mês à previsibilidade.
+ *
+ * Na fatura do cartão ele tem outro papel: é aqui que o ciclo fecha. Ela vem
+ * acumulando as compras lançadas, e o valor confirmado nunca pode ser menor que
+ * essa soma, senão sobraria um excedente negativo. O que passa da soma é o que
+ * entrou na fatura sem ter sido lançado em detalhe.
  */
 export function SheetValor({ aberto, aoFechar, lancamento, categoria }: Props) {
   const definir = useDefinirValor()
-  const [valor, setValor] = useState<number | null>(null)
+  const ehFatura = Boolean(lancamento?.cartao_id)
+  const acumulado = lancamento?.valor_detalhado ?? 0
+  const itens = lancamento?.itens_no_ciclo ?? 0
+  const [valor, setValor] = useState<number | null>(ehFatura ? (lancamento?.valor_caixa ?? null) : null)
 
   const salvar = async () => {
     if (!lancamento?.id) return
     if (!valor || valor <= 0) {
-      toast('Informe o valor previsto', 'fa-triangle-exclamation')
+      toast(ehFatura ? 'Informe o valor fechado da fatura' : 'Informe o valor previsto', 'fa-triangle-exclamation')
+      return
+    }
+    if (ehFatura && valor < acumulado) {
+      toast(
+        `A fatura não pode fechar abaixo de ${fmtMoeda(acumulado)}, que já foi lançado nela`,
+        'fa-triangle-exclamation',
+      )
       return
     }
     try {
       await definir.mutateAsync({ id: lancamento.id, valor })
-      toast(`Valor de ${lancamento.descricao} definido`, 'fa-tag')
+      toast(
+        ehFatura
+          ? `${lancamento.descricao} fechada em ${fmtMoeda(valor)}`
+          : `Valor de ${lancamento.descricao} definido`,
+        ehFatura ? 'fa-file-invoice-dollar' : 'fa-tag',
+      )
       aoFechar()
     } catch (erro) {
       toast(mensagemDeErro(erro), 'fa-triangle-exclamation')
@@ -48,12 +68,12 @@ export function SheetValor({ aberto, aoFechar, lancamento, categoria }: Props) {
     <Sheet
       aberto={aberto}
       aoFechar={aoFechar}
-      titulo="Adicionar valor"
-      icone="fa-tag"
+      titulo={ehFatura ? 'Fechar a fatura' : 'Adicionar valor'}
+      icone={ehFatura ? 'fa-file-invoice-dollar' : 'fa-tag'}
       corIcone="var(--accent)"
       acoes={
         <BotaoPill icone="fa-check" aoClicar={salvar} ocupado={definir.isPending}>
-          Salvar valor
+          {ehFatura ? 'Confirmar fatura' : 'Salvar valor'}
         </BotaoPill>
       }
     >
@@ -64,18 +84,39 @@ export function SheetValor({ aberto, aoFechar, lancamento, categoria }: Props) {
         <div>
           <b>{lancamento.descricao}</b>
           <span>
-            Vence {fmtData(lancamento.data_vencimento)} · conta variável
-            {lancamento.pagar_a ? ` · ${lancamento.pagar_a}` : ''}
+            {ehFatura
+              ? `Vence ${fmtData(lancamento.data_vencimento)} · ${
+                  itens === 0
+                    ? 'nenhuma compra lançada'
+                    : `${itens} compra${itens > 1 ? 's' : ''} somando ${fmtMoeda(acumulado)}`
+                }`
+              : `Vence ${fmtData(lancamento.data_vencimento)} · conta variável${
+                  lancamento.pagar_a ? ` · ${lancamento.pagar_a}` : ''
+                }`}
           </span>
         </div>
       </div>
 
-      <Campo id="prVal" rotulo="Valor previsto (R$)" icone="fa-brazilian-real-sign">
+      <Campo
+        id="prVal"
+        rotulo={ehFatura ? 'Valor fechado da fatura (R$)' : 'Valor previsto (R$)'}
+        icone="fa-brazilian-real-sign"
+      >
         <InputMoeda id="prVal" valor={valor} aoMudar={setValor} />
       </Campo>
 
       <div className="bl-formula">
-        Isso só preenche a previsão do mês. A baixa continua no check da lista.
+        {ehFatura ? (
+          <>
+            Digite o valor fechado como aparece no app do banco. As {itens === 1 ? 'compra' : 'compras'}
+            {' '}já lançada{itens === 1 ? '' : 's'} {itens === 1 ? 'soma' : 'somam'} {fmtMoeda(acumulado)} e
+            continua{itens === 1 ? '' : 'm'} na categoria de cada uma. A diferença aparece como gasto do
+            cartão, que é o que entrou na fatura sem ter sido lançado aqui. Depois de confirmada, compra
+            nova neste cartão vai para a próxima fatura.
+          </>
+        ) : (
+          'Isso só preenche a previsão do mês. A baixa continua no check da lista.'
+        )}
       </div>
     </Sheet>
   )

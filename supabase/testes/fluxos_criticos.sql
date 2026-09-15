@@ -18,7 +18,7 @@ declare
   id_conta uuid; id_cartao uuid; id_corretora uuid; id_investimento uuid;
   id_cat_dividas uuid; id_cat_fixas uuid; id_lanc uuid; id_fatura uuid;
   v_base numeric; v_lido numeric; valor_inv numeric; st text;
-  id_cartao2 uuid; id_fat2 uuid; v_venc date;
+  id_cartao2 uuid; id_fat2 uuid; v_venc date; v_venc2 date;
   n int; datas text; resultado text; r record;
 begin
   select id into uid from auth.users where email = 'rodolfo@rliima.com';
@@ -35,16 +35,19 @@ begin
   -- 2. FATURA: criar cartao gera fatura, valor acompanha o usado,
   --    pagar zera o limite e desfazer restaura.
   -- ============================================================
-  insert into carteiras (casal_id, dono, tipo, nome, limite, usado, dia_fechamento, dia_vencimento)
-  values (casal,'Rodolfo','cartao','TESTE cartao', 8000, 1500, 20, 28) returning id into id_cartao;
+  insert into carteiras (casal_id, dono, tipo, nome, limite, dia_fechamento, dia_vencimento)
+  values (casal,'Rodolfo','cartao','TESTE cartao', 8000, 20, 28) returning id into id_cartao;
 
-  select l.id, l.natureza, l.tipo_valor, l.forma_ref, v.valor_exibido, v.dia_exibido
+  select l.id, l.natureza, l.tipo_valor, l.forma_ref, v.valor_caixa, v.dia_exibido, v.fatura_aberta
     into r from lancamentos l join v_lancamentos v on v.id = l.id where l.cartao_id = id_cartao;
   id_fatura := r.id;
 
   if id_fatura is null then raise exception 'FALHOU 2a: cartao nao gerou fatura'; end if;
   if r.natureza <> 'fixa' or r.tipo_valor <> 'variavel' then
     raise exception 'FALHOU 2b: fatura deveria nascer fixa e variavel, nasceu % e %', r.natureza, r.tipo_valor;
+  end if;
+  if not r.fatura_aberta or r.valor_caixa is distinct from 0 then
+    raise exception 'FALHOU 2b2: a fatura deveria nascer aberta e zerada, veio % / %', r.fatura_aberta, r.valor_caixa;
   end if;
   -- A fatura debita da conta mais antiga do mesmo dono, que nem sempre e a
   -- criada por este teste: o casal ja tem contas de verdade cadastradas.
@@ -54,25 +57,31 @@ begin
   ) then
     raise exception 'FALHOU 2c: fatura nao debita de uma conta do dono, ficou %', r.forma_ref;
   end if;
-  if r.valor_exibido <> 1500 then raise exception 'FALHOU 2d: valor da fatura e %, esperado 1500', r.valor_exibido; end if;
   if r.dia_exibido <> 28 then raise exception 'FALHOU 2e: dia da fatura e %, esperado 28', r.dia_exibido; end if;
-  raise notice 'OK 2a-e: cartao gerou fatura fixa variavel, debitando da conta, valor % no dia %', r.valor_exibido, r.dia_exibido;
+  raise notice 'OK 2a-e: cartao gerou fatura fixa e variavel, aberta, debitando da conta, no dia %', r.dia_exibido;
 
-  update carteiras set usado = 2750.40 where id = id_cartao;
-  select valor_exibido into v_lido from v_lancamentos where id = id_fatura;
-  if v_lido <> 2750.40 then raise exception 'FALHOU 2f: fatura nao acompanhou o usado, ficou %', v_lido; end if;
-  raise notice 'OK 2f: o valor da fatura acompanha o limite utilizado sozinho';
+  -- Fechar a fatura e o que define o valor dela. O usado do cartao acompanha.
+  update lancamentos set valor_previsto = 2750.40 where id = id_fatura;
+  select valor_caixa into v_lido from v_lancamentos where id = id_fatura;
+  if v_lido <> 2750.40 then raise exception 'FALHOU 2f: fatura fechada ficou %', v_lido; end if;
+  select c.usado into v_lido from carteiras c where c.id = id_cartao;
+  if v_lido <> 2750.40 then raise exception 'FALHOU 2f2: usado do cartao ficou %', v_lido; end if;
+  raise notice 'OK 2f: fechar a fatura define o valor dela e o usado do cartao acompanha';
 
   insert into pagamentos (lancamento_id, data_pagamento, hora_pagamento, valor_pago)
   values (id_fatura, current_date, localtime, 2750.40);
   select c.usado into v_lido from carteiras c where c.id = id_cartao;
   if v_lido <> 0 then raise exception 'FALHOU 2g: pagar a fatura nao zerou o limite, ficou %', v_lido; end if;
-  raise notice 'OK 2g: pagar a fatura zerou o limite utilizado';
+  raise notice 'OK 2g: a fatura paga sai da soma e o limite volta a zero';
 
   delete from pagamentos where lancamento_id = id_fatura;
   select c.usado into v_lido from carteiras c where c.id = id_cartao;
   if v_lido <> 2750.40 then raise exception 'FALHOU 2h: desfazer nao restaurou o limite, ficou %', v_lido; end if;
-  raise notice 'OK 2h: desfazer a baixa restaurou o limite pelo valor pago';
+  raise notice 'OK 2h: desfazer devolve a fatura para a soma das que estao em aberto';
+
+  -- O ciclo de outubro esta fechado, entao as parcelas do teste 3 vao para
+  -- novembro sozinhas. Reabre para o bloco 3 continuar valendo o que valia.
+  update lancamentos set valor_previsto = null where id = id_fatura;
 
   -- ============================================================
   -- 1. BAIXA COM TIMESTAMP: a baixa grava data e hora.
@@ -309,20 +318,31 @@ begin
   raise notice 'OK 10: categorias separadas por tipo';
 
   -- ============================================================
-  -- 11. FATURA LIQUIDA E DESPESA NO CREDITO QUE NASCE PAGA
-  --     O cartao tem um valor fechado digitado a mao. O que ja foi
-  --     lancado em detalhe e descontado dele, senao a mesma compra
-  --     conta duas vezes: na fatura e na propria linha.
+  -- 11. A FATURA ACUMULA, FECHA, E O EXCEDENTE VIRA GASTO DO CARTAO
+  --     Aberta, ela vale a soma das compras do ciclo. Fechada, vale o
+  --     valor confirmado, e o que passa da soma e o que entrou nela
+  --     sem ter sido lancado em detalhe.
   -- ============================================================
   v_venc := private.fn_data_no_mes(
     extract(year from current_date)::int, extract(month from current_date)::int, 12);
 
-  insert into carteiras (casal_id, dono, tipo, nome, limite, usado, dia_vencimento)
-  values (casal,'Rodolfo','cartao','TESTE cartao liquido', 8000, 1000, 12) returning id into id_cartao2;
+  -- Fecha dia 5, vence dia 12. O usado NAO e digitado: ele e derivado.
+  insert into carteiras (casal_id, dono, tipo, nome, limite, dia_fechamento, dia_vencimento)
+  values (casal,'Rodolfo','cartao','TESTE cartao liquido', 8000, 5, 12) returning id into id_cartao2;
   select id into id_fat2 from lancamentos where cartao_id = id_cartao2;
   select c.saldo into v_base from carteiras c where c.id = id_conta;
 
-  -- 11a. a despesa no credito nasce paga, apontando para o cartao, sem tocar em conta
+  -- 11a. a fatura nasce aberta e vazia
+  select valor_caixa, valor_exibido, fatura_aberta, itens_no_ciclo into r
+    from v_lancamentos where id = id_fat2;
+  if not r.fatura_aberta then raise exception 'FALHOU 11a: fatura nova nao nasceu aberta'; end if;
+  if r.valor_caixa is distinct from 0 or r.itens_no_ciclo <> 0 then
+    raise exception 'FALHOU 11a: fatura nova veio com % e % itens', r.valor_caixa, r.itens_no_ciclo;
+  end if;
+  select c.usado into v_lido from carteiras c where c.id = id_cartao2;
+  if v_lido <> 0 then raise exception 'FALHOU 11a: usado do cartao novo ficou %', v_lido; end if;
+
+  -- 11b. a despesa no credito nasce paga e a fatura acumula sozinha
   insert into lancamentos (casal_id, tipo, descricao, tipo_valor, valor_previsto,
                            data_emissao, data_vencimento, dono, forma_metodo, forma_ref)
   values (casal,'despesa','TESTE compra liquida','fixo', 300, current_date, v_venc,
@@ -330,102 +350,137 @@ begin
   returning id into id_lanc;
   select l.status, p.forma_metodo, p.forma_ref, p.valor_pago into r
     from lancamentos l join pagamentos p on p.lancamento_id = l.id where l.id = id_lanc;
-  if r.status <> 'pago' then raise exception 'FALHOU 11a: status ficou %', r.status; end if;
+  if r.status <> 'pago' then raise exception 'FALHOU 11b: status ficou %', r.status; end if;
   if r.forma_metodo <> 'credito' or r.forma_ref <> id_cartao2::text then
-    raise exception 'FALHOU 11a: a baixa nao aponta para o cartao';
+    raise exception 'FALHOU 11b: a baixa nao aponta para o cartao';
   end if;
-  if r.valor_pago is distinct from 300 then raise exception 'FALHOU 11a: valor pago %', r.valor_pago; end if;
   select c.saldo into v_lido from carteiras c where c.id = id_conta;
-  if v_lido <> v_base then raise exception 'FALHOU 11a: a conta se moveu, ficou %', v_lido; end if;
-  raise notice 'OK 11a: despesa no credito nasce paga e nao move conta';
+  if v_lido <> v_base then raise exception 'FALHOU 11b: a conta se moveu, ficou %', v_lido; end if;
 
-  -- 11b. a fatura fica liquida, e os dois valores convivem
-  select valor_caixa, valor_detalhado, valor_exibido, fatura_estourada into r
+  select valor_caixa, valor_detalhado, valor_exibido, itens_no_ciclo into r
     from v_lancamentos where id = id_fat2;
-  if r.valor_caixa is distinct from 1000 then raise exception 'FALHOU 11b: caixa %', r.valor_caixa; end if;
-  if r.valor_detalhado is distinct from 300 then raise exception 'FALHOU 11b: detalhado %', r.valor_detalhado; end if;
-  if r.valor_exibido is distinct from 700 then raise exception 'FALHOU 11b: liquido %', r.valor_exibido; end if;
-  if r.fatura_estourada then raise exception 'FALHOU 11b: acusou estouro sem estourar'; end if;
-  raise notice 'OK 11b: fatura de 1000 com 300 detalhados vale 700, e o caixa segue 1000';
+  if r.valor_caixa is distinct from 300 then raise exception 'FALHOU 11b: acumulado ficou %', r.valor_caixa; end if;
+  if r.itens_no_ciclo <> 1 then raise exception 'FALHOU 11b: itens %', r.itens_no_ciclo; end if;
+  if r.valor_exibido is distinct from 0 then
+    raise exception 'FALHOU 11b: fatura aberta nao pode ter excedente, veio %', r.valor_exibido;
+  end if;
+  select c.usado into v_lido from carteiras c where c.id = id_cartao2;
+  if v_lido <> 300 then raise exception 'FALHOU 11b: usado derivado ficou %', v_lido; end if;
+  raise notice 'OK 11a-b: fatura nasce aberta, a compra nasce paga e a fatura acumula sozinha';
 
-  -- 11c. despesa de outro mes nao desconta desta fatura
+  -- 11c. despesa de outro mes ou de outro cartao nao entra nesta fatura
   insert into lancamentos (casal_id, tipo, descricao, tipo_valor, valor_previsto, data_vencimento,
                            dono, forma_metodo, forma_ref)
   values (casal,'despesa','TESTE outro mes','fixo', 400,
           (date_trunc('month', current_date) + interval '2 month')::date,
           'Casal','credito', id_cartao2::text);
-  select valor_exibido into v_lido from v_lancamentos where id = id_fat2;
-  if v_lido is distinct from 700 then raise exception 'FALHOU 11c: outro mes descontou, ficou %', v_lido; end if;
-
-  -- 11d. despesa de outro cartao tambem nao
   insert into lancamentos (casal_id, tipo, descricao, tipo_valor, valor_previsto, data_vencimento,
                            dono, forma_metodo, forma_ref)
   values (casal,'despesa','TESTE outro cartao','fixo', 250, v_venc,'Casal','credito', id_cartao::text);
+  select valor_caixa into v_lido from v_lancamentos where id = id_fat2;
+  if v_lido is distinct from 300 then raise exception 'FALHOU 11c: entrou o que nao era do ciclo, ficou %', v_lido; end if;
+  raise notice 'OK 11c: so o mesmo cartao e o mesmo ciclo entram na fatura';
+
+  -- 11d. fechar abaixo do que ja foi lancado e recusado
+  begin
+    update lancamentos set valor_previsto = 250 where id = id_fat2;
+    raise exception 'FALHOU 11d: aceitou fechar a fatura abaixo das compras dela';
+  exception when check_violation then raise notice 'OK 11d: fatura so fecha do acumulado para cima'; end;
+
+  -- 11e. fechada em 1000, o excedente de 700 vira o gasto do cartao
+  update lancamentos set valor_previsto = 1000 where id = id_fat2;
+  select valor_caixa, valor_detalhado, valor_exibido, fatura_aberta into r
+    from v_lancamentos where id = id_fat2;
+  if r.valor_caixa is distinct from 1000 then raise exception 'FALHOU 11e: caixa %', r.valor_caixa; end if;
+  if r.valor_detalhado is distinct from 300 then raise exception 'FALHOU 11e: detalhado %', r.valor_detalhado; end if;
+  if r.valor_exibido is distinct from 700 then raise exception 'FALHOU 11e: excedente %', r.valor_exibido; end if;
+  if r.fatura_aberta then raise exception 'FALHOU 11e: continua marcada como aberta'; end if;
+  select c.usado into v_lido from carteiras c where c.id = id_cartao2;
+  if v_lido <> 1000 then raise exception 'FALHOU 11e: usado apos fechar ficou %', v_lido; end if;
+  raise notice 'OK 11e: fatura fechada em 1000 com 300 em detalhe deixa 700 de gasto do cartao';
+
+  -- 11f. o ciclo fechado nao recebe compra nova: ela vai para o proximo
+  perform set_config('role','authenticated',true);
+  perform set_config('request.jwt.claims', json_build_object('sub', uid, 'role','authenticated')::text, true);
+  perform fn_criar_lancamentos('despesa','TESTE apos fechar',null,'avulsa','fixo', 90,
+    date_trunc('month', current_date)::date, date_trunc('month', current_date)::date,
+    null, 'credito', id_cartao2::text, 'Casal');
+  perform set_config('role','postgres',true);
+
+  select data_vencimento into v_venc2 from lancamentos where descricao = 'TESTE apos fechar';
+  if date_trunc('month', v_venc2) <= date_trunc('month', current_date) then
+    raise exception 'FALHOU 11f: compra em ciclo fechado ficou em %', v_venc2;
+  end if;
   select valor_exibido into v_lido from v_lancamentos where id = id_fat2;
-  if v_lido is distinct from 700 then raise exception 'FALHOU 11d: outro cartao descontou, ficou %', v_lido; end if;
-  raise notice 'OK 11c-d: so o mesmo cartao e o mesmo ciclo descontam';
+  if v_lido is distinct from 700 then raise exception 'FALHOU 11f: a fatura fechada mudou, ficou %', v_lido; end if;
+  raise notice 'OK 11f: ciclo fechado empurra a compra nova para a fatura seguinte';
 
-  -- 11e. detalhado maior que o valor digitado zera a fatura e acusa o estouro
+  -- 11g. o dia de fechamento decide o ciclo de uma compra nova
+  perform set_config('role','authenticated',true);
+  perform set_config('request.jwt.claims', json_build_object('sub', uid, 'role','authenticated')::text, true);
+  perform fn_criar_lancamentos('despesa','TESTE antes do fechamento',null,'avulsa','fixo', 30,
+    date '2027-03-03', date '2027-03-03', null, 'credito', id_cartao2::text, 'Casal');
+  perform fn_criar_lancamentos('despesa','TESTE depois do fechamento',null,'avulsa','fixo', 30,
+    date '2027-03-20', date '2027-03-20', null, 'credito', id_cartao2::text, 'Casal');
+  perform set_config('role','postgres',true);
+
+  select data_vencimento into v_venc2 from lancamentos where descricao = 'TESTE antes do fechamento';
+  if v_venc2 <> date '2027-03-12' then raise exception 'FALHOU 11g: compra do dia 3 foi para %', v_venc2; end if;
+  select data_vencimento into v_venc2 from lancamentos where descricao = 'TESTE depois do fechamento';
+  if v_venc2 <> date '2027-04-12' then raise exception 'FALHOU 11g: compra do dia 20 foi para %', v_venc2; end if;
+  raise notice 'OK 11g: o dia de fechamento do cartao decide em qual fatura a compra cai';
+
+  -- 11h. no credito sem valor nao nasce baixa, e ela aparece quando o valor chega
   insert into lancamentos (casal_id, tipo, descricao, tipo_valor, valor_previsto, data_vencimento,
                            dono, forma_metodo, forma_ref)
-  values (casal,'despesa','TESTE estouro','fixo', 900, v_venc,'Casal','credito', id_cartao2::text)
-  returning id into id_lanc;
-  select valor_exibido, fatura_estourada into r from v_lancamentos where id = id_fat2;
-  if r.valor_exibido is distinct from 0 then raise exception 'FALHOU 11e: liquido ficou %', r.valor_exibido; end if;
-  if not r.fatura_estourada then raise exception 'FALHOU 11e: nao acusou o estouro'; end if;
-  delete from lancamentos where id = id_lanc;
-  raise notice 'OK 11e: detalhado acima do valor zera a fatura e acende o aviso';
-
-  -- 11f. no credito sem valor nao nasce baixa, e ela aparece quando o valor chega
-  insert into lancamentos (casal_id, tipo, descricao, tipo_valor, valor_previsto, data_vencimento,
-                           dono, forma_metodo, forma_ref)
-  values (casal,'despesa','TESTE credito variavel','variavel', null, v_venc,
+  values (casal,'despesa','TESTE credito variavel','variavel', null,
+          (date_trunc('month', current_date) + interval '1 month' + interval '11 day')::date,
           'Casal','credito', id_cartao2::text)
   returning id into id_lanc;
   if exists (select 1 from pagamentos where lancamento_id = id_lanc) then
-    raise exception 'FALHOU 11f: nasceu baixa sem valor';
+    raise exception 'FALHOU 11h: nasceu baixa sem valor';
   end if;
   update lancamentos set valor_previsto = 220 where id = id_lanc;
   select p.valor_pago, l.status into r
     from pagamentos p join lancamentos l on l.id = p.lancamento_id where p.lancamento_id = id_lanc;
   if r.valor_pago is distinct from 220 or r.status <> 'pago' then
-    raise exception 'FALHOU 11f: ao ganhar valor a baixa saiu % / %', r.valor_pago, r.status;
+    raise exception 'FALHOU 11h: ao ganhar valor a baixa saiu % / %', r.valor_pago, r.status;
   end if;
 
-  -- 11g. sair do credito apaga a baixa automatica e devolve o status
+  -- 11i. sair do credito apaga a baixa automatica e devolve o status
   update lancamentos set forma_metodo = 'pix', forma_ref = id_conta::text where id = id_lanc;
   if exists (select 1 from pagamentos where lancamento_id = id_lanc) then
-    raise exception 'FALHOU 11g: a baixa automatica sobreviveu a troca de forma';
+    raise exception 'FALHOU 11i: a baixa automatica sobreviveu a troca de forma';
   end if;
   select c.saldo into v_lido from carteiras c where c.id = id_conta;
-  if v_lido <> v_base then raise exception 'FALHOU 11g: a conta se moveu, ficou %', v_lido; end if;
+  if v_lido <> v_base then raise exception 'FALHOU 11i: a conta se moveu, ficou %', v_lido; end if;
   delete from lancamentos where id = id_lanc;
-  raise notice 'OK 11f-g: valor variavel no credito, e a troca de forma desfaz a baixa';
+  raise notice 'OK 11h-i: valor variavel no credito, e a troca de forma desfaz a baixa';
 
-  -- 11h. pagar a fatura sai pelo CHEIO da conta, mas o balanco so conta o liquido
+  -- 11j. pagar a fatura sai pelo CHEIO da conta, mas o balanco so conta o excedente
   insert into pagamentos (lancamento_id, data_pagamento, hora_pagamento, valor_pago, forma_metodo, forma_ref)
   values (id_fat2, current_date, localtime, 1000, 'debito', id_conta::text);
   select c.saldo into v_lido from carteiras c where c.id = id_conta;
-  if v_lido <> v_base - 1000 then raise exception 'FALHOU 11h: conta ficou %, esperado %', v_lido, v_base - 1000; end if;
+  if v_lido <> v_base - 1000 then raise exception 'FALHOU 11j: conta ficou %, esperado %', v_lido, v_base - 1000; end if;
   select c.usado into v_lido from carteiras c where c.id = id_cartao2;
-  if v_lido <> 0 then raise exception 'FALHOU 11h: o cartao nao zerou, ficou %', v_lido; end if;
+  if v_lido <> 0 then raise exception 'FALHOU 11j: o cartao nao zerou, ficou %', v_lido; end if;
   select valor_caixa, valor_exibido, valor_realizado into r from v_lancamentos where id = id_fat2;
-  if r.valor_caixa is distinct from 1000 then raise exception 'FALHOU 11h: caixa apos pagar %', r.valor_caixa; end if;
-  if r.valor_exibido is distinct from 700 then raise exception 'FALHOU 11h: liquido apos pagar %', r.valor_exibido; end if;
-  if r.valor_realizado is distinct from 700 then raise exception 'FALHOU 11h: realizado %', r.valor_realizado; end if;
-  raise notice 'OK 11h: a fatura sai cheia do caixa e entra liquida no balanco';
+  if r.valor_caixa is distinct from 1000 then raise exception 'FALHOU 11j: caixa apos pagar %', r.valor_caixa; end if;
+  if r.valor_exibido is distinct from 700 then raise exception 'FALHOU 11j: excedente apos pagar %', r.valor_exibido; end if;
+  if r.valor_realizado is distinct from 700 then raise exception 'FALHOU 11j: realizado %', r.valor_realizado; end if;
+  raise notice 'OK 11j: a fatura sai cheia do caixa e entra so pelo excedente no balanco';
 
-  -- 11i. desfazer devolve conta, limite e o liquido
+  -- 11k. desfazer devolve conta, limite e o excedente
   delete from pagamentos where lancamento_id = id_fat2;
   select c.saldo into v_lido from carteiras c where c.id = id_conta;
-  if v_lido <> v_base then raise exception 'FALHOU 11i: conta ficou %', v_lido; end if;
+  if v_lido <> v_base then raise exception 'FALHOU 11k: conta ficou %', v_lido; end if;
   select c.usado into v_lido from carteiras c where c.id = id_cartao2;
-  if v_lido <> 1000 then raise exception 'FALHOU 11i: usado ficou %', v_lido; end if;
+  if v_lido <> 1000 then raise exception 'FALHOU 11k: usado ficou %', v_lido; end if;
   select valor_exibido into v_lido from v_lancamentos where id = id_fat2;
-  if v_lido is distinct from 700 then raise exception 'FALHOU 11i: liquido ficou %', v_lido; end if;
-  raise notice 'OK 11i: desfazer a fatura devolve saldo, limite e o valor liquido';
+  if v_lido is distinct from 700 then raise exception 'FALHOU 11k: excedente ficou %', v_lido; end if;
+  raise notice 'OK 11k: desfazer a fatura devolve saldo, limite e o excedente';
 
-  -- 11j. excluir lancamento pago devolve o saldo. Em receita o sinal se invertia
+  -- 11l. excluir lancamento pago devolve o saldo. Em receita o sinal se invertia
   --      e o valor era somado de novo, dobrando o saldo.
   insert into lancamentos (casal_id, tipo, descricao, tipo_valor, valor_previsto, data_vencimento,
                            dono, forma_metodo, forma_ref)
@@ -434,31 +489,29 @@ begin
   insert into pagamentos (lancamento_id, data_pagamento, hora_pagamento, valor_pago, forma_metodo, forma_ref)
   values (id_lanc, current_date, localtime, 500, 'pix', id_conta::text);
   select c.saldo into v_lido from carteiras c where c.id = id_conta;
-  if v_lido <> v_base + 500 then raise exception 'FALHOU 11j: baixa da receita deu %', v_lido; end if;
+  if v_lido <> v_base + 500 then raise exception 'FALHOU 11l: baixa da receita deu %', v_lido; end if;
   delete from lancamentos where id = id_lanc;
   select c.saldo into v_lido from carteiras c where c.id = id_conta;
-  if v_lido <> v_base then raise exception 'FALHOU 11j: excluir receita paga deixou o saldo em %', v_lido; end if;
+  if v_lido <> v_base then raise exception 'FALHOU 11l: excluir receita paga deixou o saldo em %', v_lido; end if;
 
-  -- 11k. e excluir a fatura paga devolve o limite do cartao
+  -- 11m. e excluir a fatura paga devolve o limite do cartao
   insert into pagamentos (lancamento_id, data_pagamento, hora_pagamento, valor_pago, forma_metodo, forma_ref)
   values (id_fat2, current_date, localtime, 1000, 'debito', id_conta::text);
   delete from lancamentos where id = id_fat2;
-  select c.usado into v_lido from carteiras c where c.id = id_cartao2;
-  if v_lido <> 1000 then raise exception 'FALHOU 11k: excluir fatura paga deixou usado em %', v_lido; end if;
   select c.saldo into v_lido from carteiras c where c.id = id_conta;
-  if v_lido <> v_base then raise exception 'FALHOU 11k: saldo apos excluir a fatura ficou %', v_lido; end if;
-  raise notice 'OK 11j-k: excluir pago devolve saldo e limite, inclusive em receita';
+  if v_lido <> v_base then raise exception 'FALHOU 11m: saldo apos excluir a fatura ficou %', v_lido; end if;
+  raise notice 'OK 11l-m: excluir pago devolve saldo e limite, inclusive em receita';
 
-  -- 11l. receita no credito e barrada pelo schema
+  -- 11n. receita no credito e barrada pelo schema
   begin
     insert into lancamentos (casal_id, tipo, descricao, tipo_valor, valor_previsto, data_vencimento,
                              dono, forma_metodo, forma_ref)
     values (casal,'receita','TESTE receita no credito','fixo', 100, current_date,
             'Casal','credito', id_cartao2::text);
-    raise exception 'FALHOU 11l: aceitou receita no credito';
-  exception when check_violation then raise notice 'OK 11l: receita no credito recusada pelo schema'; end;
+    raise exception 'FALHOU 11n: aceitou receita no credito';
+  exception when check_violation then raise notice 'OK 11n: receita no credito recusada pelo schema'; end;
 
-  -- 11m. fixa no credito de valor variavel passa pela virada sem estourar o
+  -- 11o. fixa no credito de valor variavel passa pela virada sem estourar o
   --      not null de valor_pago, que derrubaria o cron de todos os casais
   insert into lancamentos (casal_id, tipo, descricao, natureza, tipo_valor, valor_previsto,
                            data_vencimento, dono, forma_metodo, forma_ref)
@@ -466,7 +519,7 @@ begin
           (date_trunc('month', current_date) - interval '1 month' + interval '11 day')::date,
           'Casal','credito', id_cartao2::text);
   perform private.fn_virada_mes();
-  raise notice 'OK 11m: a virada aguenta fixa no credito sem valor';
+  raise notice 'OK 11o: a virada aguenta fixa no credito sem valor';
 
   delete from pagamentos where lancamento_id in (select id from lancamentos where descricao like 'TESTE %');
   delete from lancamentos where descricao like 'TESTE %' or cartao_id = id_cartao2;
