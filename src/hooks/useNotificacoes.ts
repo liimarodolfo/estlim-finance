@@ -17,9 +17,10 @@ const DIAS_DE_AVISO = 7
 const umDia = 24 * 60 * 60 * 1000
 
 /**
- * As quatro regras combinadas com o Rodolfo: conta variável sem valor, contas
- * atrasadas, o que vence nos próximos 7 dias e o que ainda há para receber.
- * Tudo derivado dos lançamentos do mês, sem tabela de notificação no banco.
+ * As regras combinadas com o Rodolfo: conta variável sem valor, contas
+ * atrasadas, o que vence nos próximos 7 dias, fatura com mais detalhe lançado
+ * do que valor, e o que ainda há para receber. Tudo derivado dos lançamentos do
+ * mês, sem tabela de notificação no banco.
  */
 export function useNotificacoes(): Notificacao[] {
   const mes = useFiltros((e) => e.mes)
@@ -55,7 +56,7 @@ export function useNotificacoes(): Notificacao[] {
       fundo: 'var(--expense-soft)',
       cor: 'var(--expense)',
       titulo: `${l.descricao} está atrasada`,
-      apoio: `${fmtMoeda(l.valor_exibido ?? 0)} · vencia ${fmtData(l.data_vencimento)}`,
+      apoio: `${fmtMoeda(l.valor_caixa ?? 0)} · vencia ${fmtData(l.data_vencimento)}`,
     })
   }
 
@@ -73,11 +74,23 @@ export function useNotificacoes(): Notificacao[] {
       fundo: 'var(--warn-soft)',
       cor: 'var(--warn)',
       titulo: `${naSemana.length} conta${naSemana.length > 1 ? 's' : ''} vence${naSemana.length > 1 ? 'm' : ''} nos próximos 7 dias`,
-      apoio: fmtMoeda(naSemana.reduce((s, l) => s + (l.valor_exibido ?? 0), 0)),
+      apoio: fmtMoeda(naSemana.reduce((s, l) => s + (l.valor_caixa ?? 0), 0)),
     })
   }
 
-  // 4. A receber.
+  // 4. Fatura com mais detalhe lançado do que o valor digitado no cartão.
+  for (const l of lancamentos.filter((x) => x.fatura_estourada)) {
+    avisos.push({
+      id: `estourada-${l.id}`,
+      icone: 'fa-triangle-exclamation',
+      fundo: 'var(--warn-soft)',
+      cor: 'var(--warn)',
+      titulo: `${l.descricao} tem mais detalhe do que valor`,
+      apoio: `${fmtMoeda(l.valor_detalhado)} lançados contra ${fmtMoeda(l.valor_caixa)} do cartão`,
+    })
+  }
+
+  // 5. A receber.
   const aReceber = pendentes.filter((l) => l.tipo === 'receita')
   if (aReceber.length) {
     avisos.push({

@@ -1,7 +1,7 @@
 import { CheckCircle } from '@/ui/CheckCircle'
 import { MiniBadge } from '@/ui/MiniBadge'
 import { StatusBadge } from '@/ui/StatusBadge'
-import { fmtData, fmtHora, fmtMoeda } from '@/lib/formatters'
+import { fmtData, fmtHora, fmtMoeda, MESES } from '@/lib/formatters'
 import { METODO_ICONE, rotuloDaForma } from '@/lib/formas'
 import type { LancamentoComBaixa } from '@/hooks/useLancamentos'
 import type { Carteira, Categoria, Investimento } from '@/types/database'
@@ -37,14 +37,28 @@ export function LinhaLancamento({
   const cor = categoria?.cor ?? '#6a7681'
   const icone = categoria?.icone ?? (aporte ? 'fa-seedling' : 'fa-tag')
 
+  // A despesa no crédito não saiu de conta nenhuma: ela entrou na fatura.
+  const noCredito = l.forma_metodo === 'credito' && !l.cartao_id
+  const mesDaFatura = MESES[new Date(`${l.data_vencimento}T12:00:00`).getMonth()]
+  const anoDaFatura = l.data_vencimento?.slice(0, 4) ?? ''
+
+  // A fatura vale o que o cartão ainda não teve detalhado. Sem dizer isso, o
+  // valor menor do que o da carteira parece defeito.
+  const ehFatura = Boolean(l.cartao_id)
+  const descascada = ehFatura && (l.valor_detalhado ?? 0) > 0
+
   const verbo = aporte ? 'Aplicado' : receita ? 'Recebido' : 'Pago'
-  const subtitulo = pago
-    ? `${verbo} em ${fmtData(l.pagamento!.data_pagamento)} às ${fmtHora(l.pagamento!.hora_pagamento)} · ${fmtMoeda(l.pagamento!.valor_pago)}`
-    : `${l.data_emissao ? `Emitida ${fmtData(l.data_emissao)} · ` : ''}Vence ${fmtData(l.data_vencimento)}${l.pagar_a ? ` · ${l.pagar_a}` : ''}`
+  const subtitulo = descascada
+    ? `Fatura ${fmtMoeda(l.valor_caixa)} · ${fmtMoeda(l.valor_detalhado)} já lançados em detalhe`
+    : noCredito && pago
+      ? `Na fatura de ${mesDaFatura}/${anoDaFatura} · ${fmtMoeda(l.pagamento!.valor_pago)}`
+      : pago
+        ? `${verbo} em ${fmtData(l.pagamento!.data_pagamento)} às ${fmtHora(l.pagamento!.hora_pagamento)} · ${fmtMoeda(l.pagamento!.valor_pago)}`
+        : `${l.data_emissao ? `Emitida ${fmtData(l.data_emissao)} · ` : ''}Vence ${fmtData(l.data_vencimento)}${l.pagar_a ? ` · ${l.pagar_a}` : ''}`
 
   const semValor = l.valor_exibido == null && !pago
   const sinal = aporte ? '↗' : receita ? '+' : '−'
-  const valorMostrado = pago ? l.pagamento!.valor_pago : (l.valor_exibido ?? 0)
+  const valorMostrado = l.valor_realizado ?? l.valor_exibido ?? 0
 
   const rotuloCheck = aporte ? 'aplicado' : receita ? 'recebido' : 'pago'
   const natureza =
@@ -83,9 +97,19 @@ export function LinhaLancamento({
         <span>{subtitulo}</span>
         <div className="tx-badges">
           <MiniBadge tom={natureza.tom}>{natureza.texto}</MiniBadge>
-          {l.cartao_id ? (
+          {ehFatura ? (
             <MiniBadge tom="fat" icone="fa-credit-card">
               Fatura automática
+            </MiniBadge>
+          ) : null}
+          {l.fatura_estourada ? (
+            <MiniBadge tom="var" icone="fa-triangle-exclamation">
+              Confira o valor
+            </MiniBadge>
+          ) : null}
+          {noCredito && pago ? (
+            <MiniBadge tom="fat" icone="fa-receipt">
+              Na fatura
             </MiniBadge>
           ) : null}
           {investimento ? (

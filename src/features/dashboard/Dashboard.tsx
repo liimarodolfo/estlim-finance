@@ -77,8 +77,13 @@ export default function Dashboard() {
   const despesas = lancamentos.filter((l) => l.tipo === 'despesa')
   const aportes = lancamentos.filter((l) => l.tipo === 'investimento')
 
+  // Previsto é de competência: na fatura do cartão vale o líquido, já sem o que
+  // foi lançado em detalhe. Caixa é quanto ainda sai da conta, e aí a fatura
+  // vale cheia, porque é isso que o banco cobra.
   const somaPrevista = (arr: LancamentoComBaixa[]) =>
     arr.reduce((s, l) => s + (l.valor_exibido ?? 0), 0)
+  const somaCaixa = (arr: LancamentoComBaixa[]) =>
+    arr.reduce((s, l) => s + (l.valor_caixa ?? 0), 0)
 
   const totalReceitas = somaPrevista(receitas)
   // Aporte não entra em despesa: é transferência de patrimônio, não consumo.
@@ -87,6 +92,9 @@ export default function Dashboard() {
   const aReceber = receitas.filter((l) => l.status !== 'pago')
   const atrasados = lancamentos.filter((l) => l.status === 'atrasado')
   const semValor = lancamentos.filter((l) => l.valor_exibido == null && l.status !== 'pago')
+  // Detalhado maior que o valor digitado no cartão: ou falta atualizar a fatura
+  // na Carteira, ou alguma compra foi lançada no cartão errado.
+  const faturasEstouradas = lancamentos.filter((l) => l.fatura_estourada)
 
   const saldoContas = carteiras.filter((c) => c.tipo === 'conta').reduce((s, c) => s + c.saldo, 0)
   const cartoes = carteiras.filter((c) => c.tipo === 'cartao')
@@ -94,7 +102,7 @@ export default function Dashboard() {
   const limiteTotal = cartoes.reduce((s, c) => s + c.limite, 0)
   const patrimonio = investimentos.reduce((s, i) => s + i.valor, 0)
   const aportesDoMes = aportes.reduce(
-    (s, l) => s + (l.pagamento?.valor_pago ?? l.valor_exibido ?? 0),
+    (s, l) => s + (l.valor_realizado ?? l.valor_exibido ?? 0),
     0,
   )
 
@@ -157,7 +165,7 @@ export default function Dashboard() {
       </TituloSecao>
       <div className="grid2" id="quickStats">
         <Indicador icone="fa-building-columns" cor="var(--income)" rotulo="Saldo em contas" valor={saldoContas} apoio={`${carteiras.filter((c) => c.tipo === 'conta').length} conta${carteiras.filter((c) => c.tipo === 'conta').length === 1 ? '' : 's'}`} />
-        <Indicador icone="fa-hourglass-half" cor="var(--warn)" rotulo="A pagar no mês" valor={somaPrevista(pendentes)} apoio={`${pendentes.length} pendência${pendentes.length === 1 ? '' : 's'}`} />
+        <Indicador icone="fa-hourglass-half" cor="var(--warn)" rotulo="A pagar no mês" valor={somaCaixa(pendentes)} apoio={`${pendentes.length} pendência${pendentes.length === 1 ? '' : 's'}`} />
         <Indicador icone="fa-credit-card" cor="var(--expense)" rotulo="Usado nos cartões" valor={usadoCartoes} apoio={limiteTotal ? `${Math.round((usadoCartoes / limiteTotal) * 100)}% do limite` : 'sem cartão'} />
         <Indicador icone="fa-hand-holding-dollar" cor="var(--income)" rotulo="A receber no mês" valor={somaPrevista(aReceber)} apoio={`${aReceber.length} pendente${aReceber.length === 1 ? '' : 's'}`} />
         <Indicador icone="fa-seedling" cor="var(--invest)" rotulo="Patrimônio investido" valor={patrimonio} apoio={`${investimentos.length} aplicaç${investimentos.length === 1 ? 'ão' : 'ões'}`} />
@@ -281,11 +289,31 @@ export default function Dashboard() {
           </div>
         ) : null}
 
+        {faturasEstouradas.map((l) => (
+          <div
+            className="alert"
+            key={`estourada-${l.id}`}
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate('/carteira')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') navigate('/carteira')
+            }}
+            style={{ background: 'var(--warn-soft)', color: 'var(--warn)', cursor: 'pointer' }}
+          >
+            <i className="fa-solid fa-triangle-exclamation" aria-hidden="true" />
+            <div>
+              <b>{l.descricao}</b> tem {fmtMoeda(l.valor_detalhado)} lançados em detalhe, mais do que
+              os {fmtMoeda(l.valor_caixa)} do cartão · toque para conferir na Carteira
+            </div>
+          </div>
+        ))}
+
         {atrasados.map((l) => (
           <div className="alert danger" key={l.id}>
             <i className="fa-solid fa-triangle-exclamation" aria-hidden="true" />
             <div>
-              <b>{l.descricao}</b> está atrasada · {fmtMoeda(l.valor_exibido ?? 0)} · vencia{' '}
+              <b>{l.descricao}</b> está atrasada · {fmtMoeda(l.valor_caixa ?? 0)} · vencia{' '}
               {fmtData(l.data_vencimento)}
             </div>
           </div>
@@ -310,7 +338,10 @@ export default function Dashboard() {
           </div>
         ) : null}
 
-        {semValor.length === 0 && atrasados.length === 0 && aReceber.length === 0 ? (
+        {semValor.length === 0 &&
+        atrasados.length === 0 &&
+        aReceber.length === 0 &&
+        faturasEstouradas.length === 0 ? (
           <div className="alert ok">
             <i className="fa-solid fa-check" aria-hidden="true" />
             <div>Tudo em dia por aqui</div>

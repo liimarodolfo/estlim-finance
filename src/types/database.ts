@@ -362,6 +362,7 @@ export type Database = {
       }
       pagamentos: {
         Row: {
+          cartao_id: string | null
           confirmado_por: string | null
           criado_em: string
           data_pagamento: string
@@ -369,10 +370,12 @@ export type Database = {
           forma_ref: string | null
           hora_pagamento: string
           id: string
+          lanc_tipo: Database['public']['Enums']['lanc_tipo'] | null
           lancamento_id: string
           valor_pago: number
         }
         Insert: {
+          cartao_id?: string | null
           confirmado_por?: string | null
           criado_em?: string
           data_pagamento: string
@@ -380,10 +383,12 @@ export type Database = {
           forma_ref?: string | null
           hora_pagamento: string
           id?: string
+          lanc_tipo?: Database['public']['Enums']['lanc_tipo'] | null
           lancamento_id: string
           valor_pago: number
         }
         Update: {
+          cartao_id?: string | null
           confirmado_por?: string | null
           criado_em?: string
           data_pagamento?: string
@@ -391,6 +396,7 @@ export type Database = {
           forma_ref?: string | null
           hora_pagamento?: string
           id?: string
+          lanc_tipo?: Database['public']['Enums']['lanc_tipo'] | null
           lancamento_id?: string
           valor_pago?: number
         }
@@ -438,6 +444,7 @@ export type Database = {
           descricao: string | null
           dia_exibido: number | null
           dono: Database['public']['Enums']['dono_tipo'] | null
+          fatura_estourada: boolean | null
           forma_metodo: Database['public']['Enums']['metodo_tipo'] | null
           forma_ref: string | null
           grupo_parcelas: string | null
@@ -451,8 +458,11 @@ export type Database = {
           status: Database['public']['Enums']['status_tipo'] | null
           tipo: Database['public']['Enums']['lanc_tipo'] | null
           tipo_valor: Database['public']['Enums']['valor_tipo'] | null
+          valor_caixa: number | null
+          valor_detalhado: number | null
           valor_exibido: number | null
           valor_previsto: number | null
+          valor_realizado: number | null
         }
         Relationships: []
       }

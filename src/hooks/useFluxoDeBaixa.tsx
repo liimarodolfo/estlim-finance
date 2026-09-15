@@ -58,7 +58,7 @@ export function useFluxoDeBaixa() {
         lancamentoId: l.id!,
         dataPagamento: instante.dataISO,
         horaPagamento: instante.hora,
-        valorPago: l.valor_exibido,
+        valorPago: l.valor_caixa ?? l.valor_exibido,
         formaMetodo: l.forma_metodo,
         formaRef: l.forma_ref,
       })

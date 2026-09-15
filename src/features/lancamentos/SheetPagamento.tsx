@@ -39,7 +39,12 @@ export function SheetPagamento({ aberto, aoFechar, lancamento, categoria, moment
 
   const [data, setData] = useState(momentoDoClique.dataBR)
   const [hora, setHora] = useState(momentoDoClique.hora)
-  const [valor, setValor] = useState<number | null>(lancamento?.valor_exibido ?? null)
+  // O campo traz o valor de CAIXA, não o de competência: na fatura do cartão o
+  // banco cobra o cheio, e é esse valor que sai da conta. A lista mostra o
+  // líquido, já sem o que foi lançado em detalhe, e são coisas diferentes.
+  const [valor, setValor] = useState<number | null>(
+    lancamento?.valor_caixa ?? lancamento?.valor_exibido ?? null,
+  )
   const [metodo, setMetodo] = useState<MetodoPagamento>(lancamento?.forma_metodo ?? 'pix')
   const [fonte, setFonte] = useState(lancamento?.forma_ref ?? '')
 
