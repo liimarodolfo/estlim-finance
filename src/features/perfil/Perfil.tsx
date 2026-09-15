@@ -7,10 +7,9 @@ import { toast } from '@/store/useToasts'
 import { sair, useSessao } from '@/hooks/useSessao'
 import { useEnviarFoto, usePerfil, useTrocarSenha } from '@/hooks/usePerfil'
 import { DadosPessoais } from '@/features/perfil/DadosPessoais'
+import { mensagemDeErro } from '@/lib/erros'
 
 const MINIMO_SENHA = 8
-
-const mensagem = (erro: unknown) => (erro instanceof Error ? erro.message : String(erro))
 
 export default function Perfil() {
   const { sessao } = useSessao()
@@ -33,7 +32,7 @@ export default function Perfil() {
       await enviarFoto.mutateAsync(f)
       toast('Foto de perfil atualizada', 'fa-camera')
     } catch (erro) {
-      toast(mensagem(erro), 'fa-triangle-exclamation')
+      toast(mensagemDeErro(erro), 'fa-triangle-exclamation')
     }
   }
 
@@ -57,7 +56,7 @@ export default function Perfil() {
       setSenhaConf('')
       toast('Senha atualizada com sucesso', 'fa-shield-halved')
     } catch (erro) {
-      toast(mensagem(erro), 'fa-triangle-exclamation')
+      toast(mensagemDeErro(erro), 'fa-triangle-exclamation')
     }
   }
 
@@ -65,7 +64,7 @@ export default function Perfil() {
     try {
       await sair()
     } catch (erro) {
-      toast(mensagem(erro), 'fa-triangle-exclamation')
+      toast(mensagemDeErro(erro), 'fa-triangle-exclamation')
     }
   }
 

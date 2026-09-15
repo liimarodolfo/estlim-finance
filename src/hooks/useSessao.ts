@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { comoErro } from '@/lib/erros'
 
 type EstadoSessao = {
   sessao: Session | null
@@ -41,17 +42,17 @@ export function useSessao(): EstadoSessao {
 
 export async function entrar(email: string, senha: string) {
   const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: senha })
-  if (error) throw error
+  if (error) throw comoErro(error)
 }
 
 export async function recuperarSenha(email: string) {
   const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
     redirectTo: `${window.location.origin}/perfil`,
   })
-  if (error) throw error
+  if (error) throw comoErro(error)
 }
 
 export async function sair() {
   const { error } = await supabase.auth.signOut()
-  if (error) throw error
+  if (error) throw comoErro(error)
 }

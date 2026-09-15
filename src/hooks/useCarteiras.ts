@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { usePerfil } from '@/hooks/usePerfil'
 import type { Carteira, Dono, TipoAjuste, TipoCarteira } from '@/types/database'
+import { comoErro } from '@/lib/erros'
 
 export type NovaCarteira = {
   tipo: TipoCarteira
@@ -31,7 +32,7 @@ export function useCarteiras() {
         .eq('ativo', true)
         .order('tipo')
         .order('nome')
-      if (error) throw error
+      if (error) throw comoErro(error)
       return data
     },
   })
@@ -45,12 +46,12 @@ export function useSalvarCarteira() {
     mutationFn: async ({ id, dados }: { id: string | null; dados: NovaCarteira }) => {
       if (id) {
         const { error } = await supabase.from('carteiras').update(dados).eq('id', id)
-        if (error) throw error
+        if (error) throw comoErro(error)
         return
       }
       if (!perfil) throw new Error('Perfil ainda carregando. Tente de novo em um instante.')
       const { error } = await supabase.from('carteiras').insert({ ...dados, casal_id: perfil.casal_id })
-      if (error) throw error
+      if (error) throw comoErro(error)
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['carteiras'] })
@@ -66,7 +67,7 @@ export function useExcluirCarteira() {
   return useMutation({
     mutationFn: async (id: string): Promise<string> => {
       const { data, error } = await supabase.rpc('fn_excluir_carteira', { p_carteira_id: id })
-      if (error) throw error
+      if (error) throw comoErro(error)
       return data as unknown as string
     },
     onSuccess: () => {
@@ -91,7 +92,7 @@ export function useCriarAjuste() {
         p_valor: dados.valor,
         p_motivo: dados.motivo,
       })
-      if (error) throw error
+      if (error) throw comoErro(error)
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['carteiras'] })

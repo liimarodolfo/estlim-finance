@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { Perfil } from '@/types/database'
+import { comoErro } from '@/lib/erros'
 
 const BUCKET = 'avatares'
 const LIMITE_BYTES = 2 * 1024 * 1024
@@ -28,7 +29,7 @@ export function usePerfil() {
         .select('*')
         .eq('id', auth.user.id)
         .maybeSingle()
-      if (error) throw error
+      if (error) throw comoErro(error)
       if (!data) return null
 
       return { ...data, fotoAssinada: await assinarFoto(data.foto_url) }
@@ -47,7 +48,7 @@ export function useSalvarPerfil() {
         .from('perfis')
         .update({ nome: dados.nome, telefone: dados.telefone || null })
         .eq('id', auth.user.id)
-      if (error) throw error
+      if (error) throw comoErro(error)
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['perfil'] }),
   })
@@ -71,10 +72,10 @@ export function useEnviarFoto() {
       const { error: erroUpload } = await supabase.storage
         .from(BUCKET)
         .upload(caminho, arquivo, { upsert: true, contentType: arquivo.type })
-      if (erroUpload) throw erroUpload
+      if (erroUpload) throw comoErro(erroUpload)
 
       const { error } = await supabase.from('perfis').update({ foto_url: caminho }).eq('id', auth.user.id)
-      if (error) throw error
+      if (error) throw comoErro(error)
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['perfil'] }),
   })
@@ -92,7 +93,7 @@ export function useTrocarSenha() {
       if (erroLogin) throw new Error('A senha atual não confere.')
 
       const { error } = await supabase.auth.updateUser({ password: dados.nova })
-      if (error) throw error
+      if (error) throw comoErro(error)
     },
   })
 }
@@ -101,7 +102,7 @@ export function useTrocarEmail() {
   return useMutation({
     mutationFn: async (novoEmail: string) => {
       const { error } = await supabase.auth.updateUser({ email: novoEmail.trim() })
-      if (error) throw error
+      if (error) throw comoErro(error)
     },
   })
 }
