@@ -74,3 +74,35 @@
     gap: 8px;
   }
 }
+
+/* O passo a passo do Safari nao cabe numa linha so: ele explica um caminho de
+   menu. Vira duas linhas dentro da mesma pilula, sem virar outro componente. */
+.pwa-pill.pwa-passos {
+  align-items: flex-start;
+  padding: 13px 14px;
+  line-height: 1.45;
+}
+.pwa-passos-texto {
+  flex: 1;
+  min-width: 0;
+}
+.pwa-passos-texto b {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+.pwa-passos-texto span {
+  display: block;
+  font-weight: 500;
+  opacity: 0.9;
+}
+.pwa-passos-texto span b {
+  display: inline;
+  font-weight: 700;
+  opacity: 1;
+}
+.pwa-passos-texto i {
+  font-size: 11px;
+}

@@ -124,6 +124,34 @@ testado escrito na mensagem.
 
 ## Diario de sessoes
 
+### Sessao 6 · 15/09/2026 · Instalar o app no Safari
+
+O Rodolfo abriu no Safari e o convite para instalar nao apareceu.
+
+Nao e defeito do app. O evento `beforeinstallprompt`, que o ESTLIM usa para
+oferecer o botao Instalar, so existe no Chromium: a Apple nunca o implementou.
+No iPhone, no iPad e no Safari do Mac a instalacao e sempre manual, e nenhuma
+API permite disparar aquele convite. Conferido do outro lado tambem: o manifest
+esta valido em producao, o apple-touch-icon e 180x180 exato e responde 200, e as
+metas do iOS ja estavam no index.html. Nao havia o que consertar no PWA.
+
+O que dava para fazer era parar de ficar mudo. Agora o app detecta o motor e
+ensina o caminho certo: no iOS, Compartilhar e Adicionar a Tela de Inicio; no
+Safari do Mac, o menu Arquivo e Adicionar ao Dock. A pilula usa o mesmo desenho
+das outras do PWA, tem "Agora nao", e a dispensa fica no localStorage, que e
+preferencia de aparelho e nao dado de negocio.
+
+Detalhes que a deteccao precisa acertar, e por isso viraram teste: o iPad desde
+o iPadOS 13 se anuncia como Macintosh, e o que o separa de um Mac de verdade e
+ter tela sensivel ao toque; Chrome e Edge trazem a palavra Safari no user agent
+e nao podem ser confundidos com ele; e no iOS todo navegador usa o WebKit, entao
+o Chrome de iPhone recebe as mesmas instrucoes do Safari. Sao 10 testes novos,
+total de 50.
+
+De quebra, a barra de status do iOS instalado ganhou
+`apple-mobile-web-app-status-bar-style`, que acompanha o tema. Sem ela a barra
+ficava branca fixa e sumia no tema escuro.
+
 ### Sessao 5 · 15/09/2026 · Fidelidade ao prototipo e o gesto no mobile
 
 O Rodolfo apontou duas coisas: no celular da para arrastar a tela para os lados,

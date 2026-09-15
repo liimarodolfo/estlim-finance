@@ -13,6 +13,11 @@ export function aplicarTema(tema: Tema) {
   html.style.setProperty('color-scheme', tema, 'important')
   document.body.style.setProperty('background-color', FUNDO[tema], 'important')
   document.querySelector('#metaTheme')?.setAttribute('content', FUNDO[tema])
+  // No iOS instalado a barra de status tem lista propria de valores, e nao
+  // aceita cor. Translucido no escuro, padrao no claro.
+  document
+    .querySelector('#metaStatusIOS')
+    ?.setAttribute('content', tema === 'dark' ? 'black-translucent' : 'default')
 }
 
 type EstadoTema = {

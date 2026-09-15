@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import { toast } from '@/store/useToasts'
+import { comoInstalar } from '@/lib/instalacao'
+
+// Dispensar o convite é preferência de aparelho, não dado de negócio: por isso
+// mora no localStorage e não viaja com a conta.
+const CHAVE_DISPENSA = 'estlim.instalar.dispensado'
 
 type EventoDeInstalacao = Event & {
   prompt: () => Promise<void>
@@ -15,6 +20,14 @@ type EventoDeInstalacao = Event & {
 export function BarraPWA() {
   const [convite, setConvite] = useState<EventoDeInstalacao | null>(null)
   const [online, setOnline] = useState(navigator.onLine)
+  const [dispensado, setDispensado] = useState(() => {
+    try {
+      return localStorage.getItem(CHAVE_DISPENSA) === '1'
+    } catch {
+      return false
+    }
+  })
+  const [passoAPasso, setPassoAPasso] = useState(false)
 
   const {
     needRefresh: [precisaAtualizar, setPrecisaAtualizar],
@@ -55,7 +68,23 @@ export function BarraPWA() {
     setConvite(null)
   }
 
-  if (!convite && !precisaAtualizar && online) return null
+  const dispensar = () => {
+    setDispensado(true)
+    setPassoAPasso(false)
+    setConvite(null)
+    try {
+      localStorage.setItem(CHAVE_DISPENSA, '1')
+    } catch {
+      // Navegação privada recusa o storage. O convite volta na próxima visita.
+    }
+  }
+
+  const caminho = comoInstalar(convite !== null)
+  // No Safari o beforeinstallprompt nunca dispara, então o convite automático
+  // não existe. Em vez de ficar mudo, o app ensina o caminho de lá.
+  const manual = !dispensado && online && (caminho === 'ios' || caminho === 'safari-mac')
+
+  if (!convite && !manual && !precisaAtualizar && online) return null
 
   return (
     <div className="pwa-barra">
@@ -79,15 +108,54 @@ export function BarraPWA() {
         </div>
       ) : null}
 
-      {convite && online ? (
+      {convite && online && !dispensado ? (
         <div className="pwa-pill">
           <i className="fa-solid fa-circle-down" aria-hidden="true" />
           Instalar o ESTLIM no aparelho
           <button type="button" onClick={instalar}>
             Instalar
           </button>
-          <button type="button" className="pwa-depois" onClick={() => setConvite(null)}>
+          <button type="button" className="pwa-depois" onClick={dispensar}>
             Agora não
+          </button>
+        </div>
+      ) : null}
+
+      {manual && !passoAPasso ? (
+        <div className="pwa-pill">
+          <i className="fa-solid fa-circle-down" aria-hidden="true" />
+          Instalar o ESTLIM no aparelho
+          <button type="button" onClick={() => setPassoAPasso(true)}>
+            Como fazer
+          </button>
+          <button type="button" className="pwa-depois" onClick={dispensar}>
+            Agora não
+          </button>
+        </div>
+      ) : null}
+
+      {manual && passoAPasso ? (
+        <div className="pwa-pill pwa-passos">
+          <div className="pwa-passos-texto">
+            <b>
+              <i className="fa-solid fa-circle-down" aria-hidden="true" />
+              Instalar o ESTLIM
+            </b>
+            {caminho === 'ios' ? (
+              <span>
+                O Safari não tem botão de instalar. Toque em{' '}
+                <i className="fa-solid fa-arrow-up-from-bracket" aria-hidden="true" /> Compartilhar,
+                na barra de baixo, e escolha <b>Adicionar à Tela de Início</b>.
+              </span>
+            ) : (
+              <span>
+                No Safari do Mac, abra o menu <b>Arquivo</b> e escolha{' '}
+                <b>Adicionar ao Dock</b>.
+              </span>
+            )}
+          </div>
+          <button type="button" className="pwa-depois" onClick={dispensar}>
+            Entendi
           </button>
         </div>
       ) : null}
