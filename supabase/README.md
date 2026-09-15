@@ -37,6 +37,7 @@ pnpm types:supabase
 | `0017_observacoes_comprovante_e_baixa_no_cadastro.sql` | Colunas novas em `lancamentos`, bucket `comprovantes` e o check de ja pago no cadastro |
 | `0018_saldo_automatico_das_contas.sql` | Gatilho que faz o saldo da conta seguir os pagamentos, mais o recalculo retroativo |
 | `0019_fatura_liquida_e_credito_ja_pago.sql` | Fatura desconta o que ja foi lancado em detalhe, despesa no credito nasce paga, e o pagamento passa a bastar-se para ser desfeito |
+| `0020_fatura_acumula_e_fecha.sql` | A fatura aberta acumula sozinha, fecha com confirmacao, o `usado` vira derivado e o dia de fechamento passa a valer |
 
 A numeracao 0003, 0004 e 0005 estava reservada na especificacao tecnica para funcoes,
 triggers e cron. Como storage e o ajuste de seguranca entraram antes, a ordem do disco
@@ -50,9 +51,18 @@ deixou de bater com a do documento. Vale a ordem do disco.
   referencia aponta para uma carteira `tipo = 'conta'`: cartao de credito e as
   referencias de dinheiro (`'Rodolfo'`, `'Thainy'`) passam batido, e por isso o teste de
   formato de uuid vem antes do cast, senao a baixa em dinheiro estouraria.
-- O `usado` do cartao continua sendo preenchido a mao, de proposito: e o valor fechado
-  da fatura, copiado do app do banco. Somar toda despesa no credito a ele quebraria a
-  fatura automatica em compra parcelada, que gera as N parcelas de uma vez.
+- **O `usado` do cartao e derivado, nunca digitado.** Ele e a soma das faturas que ainda
+  nao foram pagas: a aberta vale o que ja foi lancado nela, a fechada vale o confirmado.
+  Mantido por `private.fn_recalcula_usado`, chamado por gatilho em `lancamentos` e em
+  `pagamentos`.
+- **A fatura tem dois tempos.** Aberta, ela acumula as compras do ciclo sozinha e nao tem
+  excedente. Fechada, vale o valor confirmado, e o que passa da soma das compras e o
+  excedente, que e o que entrou nela sem ter sido lancado em detalhe. Fechar so vale do
+  acumulado para cima: abaixo disso sobraria um excedente negativo, que nao existe.
+- **O dia de fechamento decide o ciclo.** `private.fn_ciclo_do_cartao` escolhe a fatura de
+  uma compra: passou do fechamento, vai para a proxima; e ciclo ja fechado ou pago nao
+  recebe compra nova. O campo `dia_fechamento` estava no schema desde a 0001 sem nunca ser
+  usado.
 - **Caixa e competencia sao numeros diferentes, e a view expoe os dois.** `valor_caixa`
   e o que sai da conta quando a fatura for paga, sempre o valor cheio. `valor_exibido` e
   `valor_realizado` sao de competencia: na fatura valem o liquido, ja sem o que foi
