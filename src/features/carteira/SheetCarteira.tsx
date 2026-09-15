@@ -9,6 +9,7 @@ import { GRADIENTES, NOMES_MARCA, gradienteDaMarca } from '@/lib/marcas'
 import { toast } from '@/store/useToasts'
 import { useExcluirCarteira, useSalvarCarteira, type NovaCarteira } from '@/hooks/useCarteiras'
 import type { Carteira, Dono, TipoCarteira } from '@/types/database'
+import { mensagemDeErro } from '@/lib/erros'
 
 const DONOS: Dono[] = ['Rodolfo', 'Thainy', 'RLiima']
 const BANDEIRAS = [
@@ -16,8 +17,6 @@ const BANDEIRAS = [
   ['visa', 'Visa'],
   ['elo', 'Elo'],
 ] as const
-
-const mensagem = (erro: unknown) => (erro instanceof Error ? erro.message : String(erro))
 
 const soDia = (valor: string): string => {
   const n = valor.replace(/\D/g, '').slice(0, 2)
@@ -107,7 +106,7 @@ export function SheetCarteira({ aberto, aoFechar, carteira, tipoInicial, donoIni
       toast(editando ? 'Carteira atualizada' : `${tipo === 'conta' ? 'Conta' : 'Cartão'} criado`, 'fa-circle-check')
       aoFechar()
     } catch (erro) {
-      toast(mensagem(erro), 'fa-triangle-exclamation')
+      toast(mensagemDeErro(erro), 'fa-triangle-exclamation')
     }
   }
 
@@ -123,7 +122,7 @@ export function SheetCarteira({ aberto, aoFechar, carteira, tipoInicial, donoIni
       )
       aoFechar()
     } catch (erro) {
-      toast(mensagem(erro), 'fa-triangle-exclamation')
+      toast(mensagemDeErro(erro), 'fa-triangle-exclamation')
     }
   }
 

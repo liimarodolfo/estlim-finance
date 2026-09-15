@@ -460,6 +460,18 @@ export type Database = {
         Args: { p_carteira_id: string }
         Returns: string
       }
+      fn_excluir_categoria: {
+        Args: { p_categoria_id: string }
+        Returns: number
+      }
+      fn_excluir_corretora: {
+        Args: { p_corretora_id: string }
+        Returns: undefined
+      }
+      fn_excluir_investimento: {
+        Args: { p_investimento_id: string }
+        Returns: number
+      }
     }
     Enums: {
       ajuste_tipo: 'entrada' | 'retirada'

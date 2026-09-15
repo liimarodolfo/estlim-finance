@@ -3,12 +3,13 @@ import { Logo } from '@/ui/Logo'
 import { CampoSenha } from '@/ui/CampoSenha'
 import { entrar, recuperarSenha } from '@/hooks/useSessao'
 import { toast } from '@/store/useToasts'
+import { mensagemDeErro } from '@/lib/erros'
 
 const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 /** Mensagens do Supabase chegam em inglês. Aqui viram português do Brasil. */
 function traduzirErro(erro: unknown): string {
-  const bruto = erro instanceof Error ? erro.message : String(erro)
+  const bruto = mensagemDeErro(erro)
   const m = bruto.toLowerCase()
   if (m.includes('invalid login credentials')) return 'E-mail ou senha incorretos.'
   if (m.includes('email not confirmed')) return 'Confirme o e-mail antes de entrar. O link está na sua caixa de entrada.'

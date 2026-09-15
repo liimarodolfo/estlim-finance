@@ -48,6 +48,9 @@ Nenhum bloqueio impede o andamento dos epicos 1 e 2.
 | 14/09/2026 | Excluir carteira nao apaga historico: sem movimento a carteira some de vez, com movimento ela e arquivada (`ativo = false`) e sai das telas. Conta com investimento aplicado nao sai de jeito nenhum | Epico 5 |
 | 14/09/2026 | O formulario de conta ganhou o campo Descricao, que o prototipo nao tem. Sem ele o "Ag 0912 · CC 34871-2" que aparece na linha da conta nunca poderia ser preenchido | Epico 5 |
 | 14/09/2026 | Pagar um lancamento nao mexe no saldo da conta. O saldo so muda por ajuste, como no prototipo. Quem acompanha o realizado e o Balanco | Epico 5 |
+| 14/09/2026 | Salario e Investimentos ficam fora da lista de orcamento da tela de Categorias: uma e receita, a outra e transferencia de patrimonio, e nenhuma das duas e consumo do mes. Continuam existindo para os lancamentos | Epico 6 |
+| 14/09/2026 | Excluir categoria comum remaneja os lancamentos dela para Contas fixas antes de apagar, para nenhum lancamento ficar orfao | Epico 6 |
+| 14/09/2026 | Todo erro do Supabase e convertido em Error na fronteira dos hooks. Sem isso o toast imprimia "[object Object]", porque o Supabase devolve objeto simples e nao Error | Epico 6 |
 | 14/09/2026 | **Virada de mes: contas fixas de valor variavel nascem SEM valor**, com o dot vermelho de notificacao ate o valor ser preenchido. Isso substitui a regra da media dos 3 ultimos pagos que estava na secao 4.1 do documento mestre e na `fn_virada_mes` da especificacao tecnica | Bloco 5, resposta explicita do Rodolfo |
 
 ## Suposicoes assumidas
@@ -75,7 +78,7 @@ Quando faltar resposta e o padrao sugerido for usado, registrar aqui para valida
 | 3 | Autenticacao e Perfil | concluido | epico/3-auth-e-perfil | 14/09/2026 |
 | 4 | Design system | concluido | epico/4-design-system | 14/09/2026 |
 | 5 | Carteiras | concluido | epico/5-carteiras | 14/09/2026 |
-| 6 | Categorias e Investimentos | a fazer | epico/6-categorias-e-investimentos | |
+| 6 | Categorias e Investimentos | concluido | epico/6-categorias-e-investimentos | 14/09/2026 |
 | 7 | Lancamentos | a fazer | epico/7-lancamentos | |
 | 8 | Automacoes no banco | a fazer | epico/8-automacoes-no-banco | |
 | 9 | Check de baixa e pagamentos | a fazer | epico/9-baixa-e-pagamentos | |
@@ -101,6 +104,13 @@ Status possiveis: a fazer, em andamento, concluido, bloqueado.
 - Feito: leitura dos cinco documentos; copia do CLAUDE.md para a raiz e dos demais para `docs/`; `.gitignore`, `.env.example` e `.env.local` preenchido com a URL e a anon key do projeto ESTLIM-Finance (confirmado fora do versionamento); levantamento do ambiente (Node 24.14, pnpm 11.1.3, git 2.53, sem gh, sem CLI da Vercel e sem CLI do Supabase); confirmacao de que o banco esta vazio; entrevista dos blocos 1 a 5; primeiro commit local (`fdf6076`).
 - Pendente: push para o GitHub (B1), projeto e variaveis na Vercel (B2 e B3).
 - Proximo passo: Epico 1, fundacao tecnica.
+
+### Sessao 1 · 14/09/2026 · Epico 6
+- Feito: tela de Categorias com orcamento mensal, barra de consumo e alerta de estouro em vermelho; CRUD com icone e cor obrigatorios; as tres categorias do sistema com nome travado e sem lixeira. Tela Investir com patrimonio total, quebra entre Ativos e Caixinhas, listagem agrupada, vinculo com conta cadastrada ou corretora, e CRUD de corretoras com upload de logo para o bucket privado.
+- Testado por SQL: renomear e excluir categoria do sistema barrado nos dois caminhos (funcao e delete direto), orcamento dela ainda editavel, categoria comum excluida com o lancamento remanejado para Contas fixas, corretora com investimento recusada, e o check de banco contra corretora mantido.
+- Testado na tela, com dados que criei e apaguei depois: barra de consumo cheia e vermelha quando estoura e parcial quando nao, categoria protegida abrindo com o aviso e sem lixeira, upload de logo de verdade indo para o Storage e voltando por URL assinada, criacao de investimento em corretora e em conta, e a recusa de excluir corretora com investimento. Conferido no desktop no tema claro e no mobile no tema escuro.
+- Um defeito encontrado e corrigido: o toast imprimia "[object Object]" em qualquer erro vindo do banco, porque o Supabase nao devolve Error. Agora todo hook converte na fronteira.
+- Proximo passo: Epico 7, lancamentos, o nucleo do sistema.
 
 ### Sessao 1 · 14/09/2026 · Epico 5
 - Feito: CRUD de contas e cartoes com seletor de banco (17 marcas mais a opcao de digitar), cor em gradiente, bandeira, funcao, limite, usado e os dias de fechamento e vencimento; tela Carteira com seletor de perfil filtrando card e listas, cores por perfil, contas e cartoes agrupados por dono; ajuste de saldo com motivo obrigatorio. Ajuste e exclusao viraram funcoes no banco, numa transacao so.

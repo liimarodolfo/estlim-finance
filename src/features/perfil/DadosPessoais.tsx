@@ -2,10 +2,9 @@ import { useState } from 'react'
 import { mascaraTelefone } from '@/lib/masks'
 import { toast } from '@/store/useToasts'
 import { useSalvarPerfil, useTrocarEmail } from '@/hooks/usePerfil'
+import { mensagemDeErro } from '@/lib/erros'
 
 const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-const mensagem = (erro: unknown) => (erro instanceof Error ? erro.message : String(erro))
 
 type Props = {
   nomeInicial: string
@@ -42,7 +41,7 @@ export function DadosPessoais({ nomeInicial, telefoneInicial, emailDaSessao }: P
         toast('Perfil atualizado', 'fa-circle-check')
       }
     } catch (erro) {
-      toast(mensagem(erro), 'fa-triangle-exclamation')
+      toast(mensagemDeErro(erro), 'fa-triangle-exclamation')
     }
   }
 
