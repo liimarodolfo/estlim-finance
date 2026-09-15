@@ -124,6 +124,69 @@ testado escrito na mensagem.
 
 ## Diario de sessoes
 
+### Sessao 3 · 15/09/2026 · Fatura liquida e credito que nasce pago
+
+O Rodolfo achou uma despesa contada duas vezes. Ele digita a mao o valor fechado
+da fatura do cartao em `carteiras.usado`, porque tem gasto que nao controla item
+a item. Mas tambem cadastra as despesas que controla, e elas foram pagas naquele
+mesmo cartao. Os R$ 119,00 da Hospedagem RLiima ja estavam dentro dos R$ 502,79
+da fatura, e o app somava os dois: R$ 975,24 em vez de R$ 856,24.
+
+Nenhum dos dez pontos de soma do frontend distinguia as duas coisas, entao era
+duplicacao estrutural, nao um caso isolado.
+
+**O que mudou.** A fatura passa a valer o usado menos o que ja foi lancado em
+detalhe naquele ciclo. Ela vira a sobra nao detalhada: cada despesa que o
+usuario lanca a descasca para a categoria certa, e a soma continua fechando no
+valor que o banco cobra. E toda despesa no credito nasce paga, porque quem
+quitou a compra foi a operadora: a divida migrou para a fatura, que e paga
+depois. A baixa dela aponta para o cartao, entao nenhuma conta se move.
+
+**A distincao que sustenta isso.** O mesmo lancamento passou a ter dois valores,
+e a view expoe os dois. `valor_caixa` e o que sai da conta quando a fatura for
+paga, sempre cheio. `valor_exibido` e `valor_realizado` sao de competencia, ja
+liquidos. Sem `valor_realizado` a correcao nao resolveria nada: ela so mudaria a
+duplicacao da coluna Previsto para a Realizado, onde ela apareceria depois de a
+fatura ser paga, que e quando ninguem mais esta olhando.
+
+**Tres defeitos encontrados no caminho, dois deles meus:**
+
+- **Excluir uma receita paga dobrava o saldo da conta.** Confirmado no banco:
+  1.000 virava 1.500 na baixa e 2.000 ao excluir. Na exclusao em cascata o
+  lancamento pai ja nao existe, entao o gatilho do saldo nao achava o tipo, caia
+  no ramo de despesa e somava em vez de subtrair. Em despesa o erro coincidia
+  com o certo, e por isso o teste da sessao passada passou. Pelo mesmo motivo,
+  excluir uma fatura paga nunca devolvia o limite do cartao. O pagamento passou
+  a guardar `lanc_tipo` e `cartao_id`: ele e um fato historico e precisa
+  bastar-se para ser desfeito.
+- **Receita vencida voltou a nascer atrasada.** A migration 0017 reescreveu
+  `fn_criar_lancamentos` e perdeu o guard que a 0013 tinha acrescentado.
+- **A fatura de um mes passado lia o usado de hoje.** Vale desde sempre, mas ia
+  doer em duas semanas: a fatura de setembro esta em aberto, e em outubro as
+  duas leriam o mesmo numero. Agora a virada de mes congela o valor da fatura
+  que fecha, e so o ciclo aberto le o `usado`.
+
+Testado: despesa no credito nasce paga sem mover conta; a fatura de 1.000 com
+300 detalhados vale 700 e o caixa segue 1.000; despesa de outro mes ou de outro
+cartao nao desconta; detalhado acima do valor zera a fatura e acende o aviso;
+credito sem valor nao gera baixa e ganha uma quando o valor chega; trocar
+credito por pix apaga a baixa; pagar a fatura debita a conta pelo cheio e entra
+liquida no balanco, e desfazer reverte os dois; excluir pago devolve saldo e
+limite, inclusive em receita; as 5 parcelas no credito nascem pagas; a virada
+aguenta fixa no credito sem valor. Os blocos 2, 3 e 7 da suite continuam
+passando com os gatilhos novos. Conferido no navegador nos dois temas: o Balanco
+mostra Cartao de Credito R$ 383,79, Empresa RLiima R$ 119,00 e total R$ 856,24,
+e o campo da baixa da fatura propoe R$ 502,79.
+
+Corrigido de quebra na suite: a asserção 2c exigia que a fatura debitasse da
+conta criada pelo proprio teste, mas o casal ja tem contas de verdade mais
+antigas, e a funcao escolhe a mais antiga do dono. O teste supunha banco vazio.
+
+Uma coisa a registrar com honestidade: durante a sessao a baixa da Hospedagem
+RLiima sumiu em algum momento e foi restaurada pelo retroativo. Investiguei o
+gatilho novo com uma sonda dedicada e ele nao e o responsavel (nem a virada de
+mes nem a marcacao de atrasados derrubam a baixa). Nao identifiquei a causa.
+
 ### Sessao 2 · 15/09/2026 · Ajustes de uso real
 Seis pontos levantados pelo Rodolfo usando o app com dados de verdade.
 
@@ -199,7 +262,11 @@ Corrigido de quebra: `supabase/testes/fluxos_criticos.sql` usava variaveis plpgs
 | `fn_virada_mes` da especificacao tecnica descreve a media dos 3 ultimos pagos | Contradiz a decisao de 14/09/2026. Implementar com valor nulo e corrigir o texto do documento no Epico 8 |
 | Recharts instalado e nao usado | Os graficos seguem o desenho do prototipo. Remover a dependencia se ficar decidido que nunca vai entrar |
 | Relatorio anual consolidado fora do escopo | Suposicao S7, para validar depois |
-| `usado` do cartao continua manual | Somar a despesa no credito ao limite utilizado quebraria a fatura automatica em compra parcelada: 5x890 inflaria o `usado` em 4.450 de uma vez. Precisa de decisao sobre competencia antes de virar gatilho |
+| `usado` do cartao continua manual | E o valor fechado da fatura, copiado do app do banco. Somar a despesa no credito a ele quebraria a fatura automatica em compra parcelada: 5x890 inflaria o `usado` em 4.450 de uma vez |
+| `usado` e um escalar, nao um valor por ciclo | A fatura de um mes futuro le o limite utilizado de hoje. A virada de mes resolve para o passado, congelando; o futuro segue estimativa. Resolver de verdade pede um valor fechado de fatura por mes, que e outro epico |
+| `dia_fechamento` segue sem uso no banco | Decisao do Rodolfo em 15/09/2026: o ciclo e o mes do vencimento, e ele escolhe em qual fatura a compra entra pela data que digita. Uma compra feita entre o fechamento e o vencimento cai na fatura que ele mandar, nao na que o banco vai cobrar |
+| Baixa parcial da fatura reescreve o previsto do mes | Ela zera o `usado` do mesmo jeito e congela o caixa no valor pago. Herdado, e agora mais visivel |
+| Anexo enviado com a sheet fechada sem salvar fica no bucket | Ja registrado na sessao 2; o botao de remover cobre o caso deliberado |
 | Anexo enviado e sheet fechada sem salvar deixa o arquivo no bucket | O botao de remover cobre o caso deliberado. Limpeza periodica ou varredura de orfaos resolve o resto |
 
 ## Ideias para versoes futuras

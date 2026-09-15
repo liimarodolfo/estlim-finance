@@ -55,8 +55,9 @@ Você conduz o projeto épico a épico, sem pedir aprovação a cada passo. Aja 
 
 ### Regras de negócio que não podem ser simplificadas
 Estão detalhadas na seção 4 do documento mestre. As cinco mais sensíveis:
-1. O check de baixa captura data e hora do clique.
-2. A fatura automática do cartão sempre reflete o limite utilizado, e pagá-la zera esse limite.
+1. O check de baixa captura data e hora do clique. A baixa da despesa no crédito é a única exceção, porque não há clique: ela nasce junto com o lançamento, na data de emissão da compra.
+2. A fatura automática do cartão reflete o limite utilizado **menos o que já foi lançado em detalhe naquele ciclo**, senão a mesma compra conta duas vezes, na fatura e na própria linha. Pagá-la zera o limite, e o que sai da conta é sempre o valor cheio. Decisão do Rodolfo em 15/09/2026.
+   - Toda despesa no crédito nasce paga: quem quitou a compra foi a operadora, e a dívida migrou para a fatura, que é paga depois.
 3. Parcelas geram N lançamentos numerados X/N, com vencimento vindo do cartão quando a compra é no crédito.
 4. Ajuste de carteira exige motivo, validado antes de tocar no saldo.
 5. Lançamentos variáveis podem existir sem valor, com notificação de "Adicionar valor" até serem preenchidos.
