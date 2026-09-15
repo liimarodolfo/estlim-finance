@@ -444,7 +444,10 @@ export type Database = {
           descricao: string | null
           dia_exibido: number | null
           dono: Database['public']['Enums']['dono_tipo'] | null
+          cartao_fechamento: number | null
+          fatura_aberta: boolean | null
           fatura_estourada: boolean | null
+          itens_no_ciclo: number | null
           forma_metodo: Database['public']['Enums']['metodo_tipo'] | null
           forma_ref: string | null
           grupo_parcelas: string | null

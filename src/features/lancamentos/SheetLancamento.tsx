@@ -7,7 +7,7 @@ import { InputMoeda } from '@/ui/InputMoeda'
 import { BotaoPill } from '@/ui/BotaoPill'
 import { BotaoExcluir } from '@/ui/BotaoExcluir'
 import { CheckCircle } from '@/ui/CheckCircle'
-import { agora, fmtData, fmtHora, paraISO } from '@/lib/formatters'
+import { agora, fmtData, fmtHora, MESES, paraISO } from '@/lib/formatters'
 import { METODO_ICONE, fontesPara, metodosPara, rotuloDaFonte } from '@/lib/formas'
 import { mensagemDeErro } from '@/lib/erros'
 import { toast } from '@/store/useToasts'
@@ -251,18 +251,23 @@ export function SheetLancamento({ aberto, aoFechar, lancamento, tipoInicial }: P
         }
         toast('Lançamento atualizado', 'fa-pen')
       } else {
-        await criar.mutateAsync({
+        const vencEscolhido = await criar.mutateAsync({
           ...dados,
           parcelas: parcelada ? Number(parcelas) : 1,
           pago: marcarPago && !noCredito,
           pago_data: marcarPago && !noCredito ? paraISO(dataPaga) : null,
           pago_hora: marcarPago && !noCredito ? `${horaPaga}:00` : null,
         })
+        // No crédito o banco pode ter mandado a compra para outra fatura.
+        const naFatura =
+          noCredito && vencEscolhido
+            ? ` de ${MESES[new Date(`${vencEscolhido}T12:00:00`).getMonth()]}/${vencEscolhido.slice(0, 4)}`
+            : ''
         toast(
           parcelada
-            ? `${parcelas} parcelas criadas, uma por mês${noCredito ? ', todas na fatura do cartão' : marcarPago ? `, a primeira já ${rotuloBaixa}` : ''}`
+            ? `${parcelas} parcelas criadas, uma por mês${noCredito ? `, a primeira na fatura${naFatura}` : marcarPago ? `, a primeira já ${rotuloBaixa}` : ''}`
             : noCredito
-              ? 'Lançamento criado e somado à fatura do cartão'
+              ? `Lançamento criado e somado à fatura${naFatura}`
               : marcarPago
                 ? `Lançamento criado e marcado como ${rotuloBaixa}`
                 : 'Lançamento criado',

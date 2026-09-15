@@ -6,6 +6,7 @@ import { SeletorCor } from '@/ui/SeletorCor'
 import { BotaoPill } from '@/ui/BotaoPill'
 import { BotaoExcluir } from '@/ui/BotaoExcluir'
 import { GRADIENTES, NOMES_MARCA, gradienteDaMarca } from '@/lib/marcas'
+import { fmtMoeda } from '@/lib/formatters'
 import { toast } from '@/store/useToasts'
 import { useExcluirCarteira, useSalvarCarteira, type NovaCarteira } from '@/hooks/useCarteiras'
 import type { Carteira, Dono, TipoCarteira } from '@/types/database'
@@ -48,7 +49,7 @@ export function SheetCarteira({ aberto, aoFechar, carteira, tipoInicial, donoIni
   const [bandeira, setBandeira] = useState(carteira?.bandeira ?? 'mastercard')
   const [funcao, setFuncao] = useState(carteira?.funcao ?? '')
   const [limite, setLimite] = useState<number | null>(carteira?.limite ?? null)
-  const [usado, setUsado] = useState<number | null>(carteira?.usado ?? null)
+  const usado = carteira?.usado ?? 0
   const [fecha, setFecha] = useState(carteira?.dia_fechamento ? String(carteira.dia_fechamento) : '')
   const [vence, setVence] = useState(carteira?.dia_vencimento ? String(carteira.dia_vencimento) : '')
 
@@ -96,7 +97,7 @@ export function SheetCarteira({ aberto, aoFechar, carteira, tipoInicial, donoIni
       bandeira: tipo === 'cartao' ? bandeira : null,
       funcao: tipo === 'cartao' ? funcao.trim() || null : null,
       limite: tipo === 'cartao' ? (limite ?? 0) : 0,
-      usado: tipo === 'cartao' ? (usado ?? 0) : 0,
+      // O usado e derivado das compras lancadas: o formulario nao o escreve.
       dia_fechamento: tipo === 'cartao' ? diaFecha : null,
       dia_vencimento: tipo === 'cartao' ? diaVence : null,
     }
@@ -247,13 +248,13 @@ export function SheetCarteira({ aberto, aoFechar, carteira, tipoInicial, donoIni
             </Campo>
           </div>
           <div className="bl-formula">
-            Em Usado, digite o valor fechado da fatura, como aparece no app do banco. As compras que
-            você já lançou em detalhe são descontadas dele sozinhas, então a fatura na lista mostra
-            só o que ainda não foi detalhado.
+            O valor usado do cartão é somado sozinho pelas compras que você lança nele. Quando a
+            fatura fechar, ela aparece na lista de Lançamentos pedindo o valor final, e a diferença
+            entra como gasto do cartão.
           </div>
           <div className="field-row">
-            <Campo id="wUsado" rotulo="Usado (R$)" icone="fa-cart-shopping">
-              <InputMoeda id="wUsado" valor={usado} aoMudar={setUsado} />
+            <Campo id="wUsado" rotulo="Usado hoje (R$)" icone="fa-cart-shopping">
+              <input id="wUsado" value={fmtMoeda(usado)} readOnly tabIndex={-1} />
             </Campo>
             <Campo id="wFuncao" rotulo="Função" icone="fa-toggle-on">
               <input

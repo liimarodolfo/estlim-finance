@@ -87,8 +87,11 @@ function invalidarTudo(qc: ReturnType<typeof useQueryClient>) {
 export function useCriarLancamento() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (dados: NovoLancamento) => {
-      const { error } = await supabase.rpc('fn_criar_lancamentos', {
+    // Devolve o vencimento que o banco escolheu. No crédito ele pode ser outro
+    // mês, porque o ciclo do cartão manda: passou do fechamento, ou a fatura já
+    // foi fechada, a compra vai para a fatura seguinte.
+    mutationFn: async (dados: NovoLancamento): Promise<string | null> => {
+      const { data, error } = await supabase.rpc('fn_criar_lancamentos', {
         p_tipo: dados.tipo,
         p_descricao: dados.descricao,
         p_pagar_a: dados.pagar_a,
@@ -110,6 +113,15 @@ export function useCriarLancamento() {
         p_pago_hora: dados.pago_hora,
       })
       if (error) throw comoErro(error)
+
+      const id = data as unknown as string | null
+      if (!id) return null
+      const { data: criado } = await supabase
+        .from('lancamentos')
+        .select('data_vencimento')
+        .eq('id', id)
+        .maybeSingle()
+      return criado?.data_vencimento ?? null
     },
     onSuccess: () => invalidarTudo(qc),
   })
