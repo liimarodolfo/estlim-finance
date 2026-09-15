@@ -24,10 +24,14 @@ pnpm types:supabase
 | `0004_endurecimento.sql` | Revogacoes sugeridas pelo linter. Quebrou o RLS e foi corrigida pela seguinte |
 | `0005_meu_casal_em_schema_privado.sql` | Move `meu_casal()` para o schema `private` e refaz as policies |
 | `0006_convites_e_perfil_no_cadastro.sql` | Tabela `convites` e o gatilho que abre o perfil no cadastro |
+| `0007_convite_vale_uma_vez.sql` | Convite de uso unico, fechando o cadastro de vez |
+| `0008_ajuste_e_exclusao_de_carteira.sql` | `fn_criar_ajuste` e `fn_excluir_carteira` |
+| `0009_categorias_protegidas_e_exclusoes.sql` | Trava das categorias de sistema e as exclusoes de categoria, corretora e investimento |
+| `0010_mensagens_de_erro_em_portugues.sql` | So o texto das excecoes, que aparecem no toast |
 
 A numeracao 0003, 0004 e 0005 estava reservada na especificacao tecnica para funcoes,
 triggers e cron. Como storage e o ajuste de seguranca entraram antes, o Epico 8 comeca
-em `0007_functions.sql`.
+em `0011_functions.sql`.
 
 ## Decisoes que valem lembrar
 
