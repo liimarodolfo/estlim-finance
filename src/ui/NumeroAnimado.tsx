@@ -20,11 +20,14 @@ export function NumeroAnimado({ valor, className, formatar = fmtMoeda }: Props) 
     if (!el) return
 
     const reduzido = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const escondido = document.visibilityState !== 'visible'
     const de = anterior.current
     const para = valor
     anterior.current = valor
 
-    if (reduzido || de === para) {
+    // Aba oculta nao roda requestAnimationFrame. Sem esta saida, o numero ficava
+    // congelado no valor antigo ate alguem interagir com a pagina.
+    if (reduzido || escondido || de === para) {
       el.textContent = formatar(para)
       return
     }
@@ -38,7 +41,17 @@ export function NumeroAnimado({ valor, className, formatar = fmtMoeda }: Props) 
       if (t < 1) quadro = requestAnimationFrame(passo)
     }
     quadro = requestAnimationFrame(passo)
-    return () => cancelAnimationFrame(quadro)
+
+    // Rede de seguranca: se a animacao for interrompida no meio, o valor final
+    // aparece assim mesmo. Numero de dinheiro errado na tela e pior que sem animacao.
+    const garantia = window.setTimeout(() => {
+      el.textContent = formatar(para)
+    }, DURACAO + 80)
+
+    return () => {
+      cancelAnimationFrame(quadro)
+      window.clearTimeout(garantia)
+    }
   }, [valor, formatar])
 
   return <span ref={alvo} className={className} />
