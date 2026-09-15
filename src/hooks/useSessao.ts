@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { comoErro } from '@/lib/erros'
+import { limparCachePersistido } from '@/app/persistencia'
 
 type EstadoSessao = {
   sessao: Session | null
@@ -64,4 +65,6 @@ export async function recuperarSenha(email: string) {
 export async function sair() {
   const { error } = await supabase.auth.signOut()
   if (error) throw comoErro(error)
+  // O cache offline mora no aparelho: sair da conta tem que levar ele junto.
+  await limparCachePersistido()
 }
