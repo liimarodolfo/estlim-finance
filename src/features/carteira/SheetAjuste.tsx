@@ -7,8 +7,7 @@ import { fmtMoeda } from '@/lib/formatters'
 import { toast } from '@/store/useToasts'
 import { useCriarAjuste } from '@/hooks/useCarteiras'
 import type { Carteira, TipoAjuste } from '@/types/database'
-
-const mensagem = (erro: unknown) => (erro instanceof Error ? erro.message : String(erro))
+import { mensagemDeErro } from '@/lib/erros'
 
 type Props = {
   aberto: boolean
@@ -52,7 +51,7 @@ export function SheetAjuste({ aberto, aoFechar, contas }: Props) {
       setMotivo('')
       aoFechar()
     } catch (erro) {
-      toast(mensagem(erro), 'fa-triangle-exclamation')
+      toast(mensagemDeErro(erro), 'fa-triangle-exclamation')
     }
   }
 
