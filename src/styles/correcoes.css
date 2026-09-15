@@ -21,3 +21,71 @@
 .cor-sw.cor-solida.sel::after {
   font-family: 'Font Awesome 6 Free';
 }
+
+/* O prototipo nao tem check dentro de formulario: la o unico check e o da lista
+   de lancamentos. Estas duas regras so montam a linha (check + rotulo) e o
+   bloco do anexo reaproveitando as cores e os raios ja definidos nos tokens.
+   Nada aqui muda um estilo do prototipo, e composicao nova. */
+.check-linha {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 2px 4px;
+  cursor: pointer;
+}
+.check-linha b {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.check-linha span {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.anexo-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.anexo-box.tem {
+  color: var(--income);
+}
+.anexo-box .anexo-nome {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* O prototipo nao tem campo de texto longo em lugar nenhum, entao nao definiu
+   textarea. Aqui ele repete, regra por regra, o mesmo visual de .field input do
+   prototipo, so somando o que e proprio de textarea (fonte herdada e resize). */
+.field textarea {
+  width: 100%;
+  padding: 14px 15px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--hairline);
+  background: var(--canvas);
+  color: var(--ink);
+  transition: border 0.2s, box-shadow 0.2s;
+  outline: none;
+  font: inherit;
+  resize: vertical;
+}
+[data-theme='dark'] .field textarea {
+  background: var(--surface);
+}
+.field textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0, 153, 255, 0.15);
+}
