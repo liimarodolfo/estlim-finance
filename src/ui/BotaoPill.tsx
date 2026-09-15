@@ -2,7 +2,8 @@ import type { ReactNode } from 'react'
 
 type Props = {
   children: ReactNode
-  aoClicar?: () => void
+  /** Recebe o evento, porque alguns botoes disparam confete no proprio ponto do clique. */
+  aoClicar?: (evento: React.MouseEvent<HTMLButtonElement>) => void
   icone?: string
   tipo?: 'button' | 'submit'
   variante?: 'primario' | 'verde' | 'aprovar' | 'fantasma'

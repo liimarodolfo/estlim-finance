@@ -7,6 +7,8 @@ Arquivo vivo. O Claude Code le no inicio de toda sessao e atualiza ao fim de cad
 | # | Bloqueio | Impacto | Como resolver |
 |---|---|---|---|
 | B1 | Push para o GitHub bloqueado pelo modo automatico da sessao | Commits ficam locais ate alguem empurrar | Rodolfo empurra pelo GitHub Desktop, ou libera uma regra de Bash para `git push` nas configuracoes do Claude Code |
+| B7 | Notificacao push no celular nao implementada | Os tres gatilhos escolhidos (vespera, no dia e atraso) existem so como notificacao dentro do app, no sino | Precisa de chaves VAPID, uma Edge Function com web-push, uma tabela de assinaturas e a permissao concedida no aparelho. Nada disso e caro, mas depende de configurar segredo na Edge Function, o que a CLI faz e o MCP nao |
+| B8 | Protecao contra senha vazada desligada no Supabase Auth | O unico alerta que sobrou no linter de seguranca | Ligar em Authentication > Policies > Password Security no painel. E um clique |
 | B2 | Projeto na Vercel ainda nao criado | Sem deploy publicado | Precisa do teamId da conta pessoal (a conta Hobby nao aparece em `list_teams`) e de um build valido no repositorio. Fica para o fim do Epico 1, quando existir app para buildar |
 | B3 | Variaveis de ambiente na Vercel nao cadastradas | Build publicado sem Supabase | Depende de B2. As tres variaveis estao em `.env.example` |
 | B4 | Senha do banco Supabase (`SUPABASE_DB_PASSWORD`) nao informada | `pnpm types:supabase` e a CLI nao rodam | Contornado: as migrations vao pelo MCP e os tipos sao gerados pelo MCP tambem. Informar a senha so se quiser rodar a CLI localmente |
@@ -51,6 +53,10 @@ Nenhum bloqueio impede o andamento dos epicos 1 e 2.
 | 14/09/2026 | Salario e Investimentos ficam fora da lista de orcamento da tela de Categorias: uma e receita, a outra e transferencia de patrimonio, e nenhuma das duas e consumo do mes. Continuam existindo para os lancamentos | Epico 6 |
 | 14/09/2026 | Excluir categoria comum remaneja os lancamentos dela para Contas fixas antes de apagar, para nenhum lancamento ficar orfao | Epico 6 |
 | 14/09/2026 | Todo erro do Supabase e convertido em Error na fronteira dos hooks. Sem isso o toast imprimia "[object Object]", porque o Supabase devolve objeto simples e nao Error | Epico 6 |
+| 14/09/2026 | Os graficos sao os do prototipo (donut em SVG na mao e barras em CSS), nao Recharts. Recharts continua instalado, mas usar mudaria o desenho, e o prototipo e especificacao | Epico 10 |
+| 14/09/2026 | O ciclo da baixa virou um hook compartilhado (`useFluxoDeBaixa`), porque acontece na lista de Lancamentos, nos proximos vencimentos do Dashboard e na Agenda | Epico 10 |
+| 14/09/2026 | Icones do PWA gerados por script proprio (`scripts/gerar-icones.mjs`), desenhando a marca direto em PNG com zlib, em vez de trazer uma biblioteca de imagem so para rasterizar um SVG | Epico 13 |
+| 14/09/2026 | `fn_virada_mes` e `fn_marcar_atrasados` moram no schema `private`. No `public` elas viravam rota REST, e sao security definer que atravessam todos os casais: qualquer anonimo poderia disparar replicacao de contas fixas no banco inteiro | Epico 14 |
 | 14/09/2026 | **Virada de mes: contas fixas de valor variavel nascem SEM valor**, com o dot vermelho de notificacao ate o valor ser preenchido. Isso substitui a regra da media dos 3 ultimos pagos que estava na secao 4.1 do documento mestre e na `fn_virada_mes` da especificacao tecnica | Bloco 5, resposta explicita do Rodolfo |
 
 ## Suposicoes assumidas
@@ -79,16 +85,22 @@ Quando faltar resposta e o padrao sugerido for usado, registrar aqui para valida
 | 4 | Design system | concluido | epico/4-design-system | 14/09/2026 |
 | 5 | Carteiras | concluido | epico/5-carteiras | 14/09/2026 |
 | 6 | Categorias e Investimentos | concluido | epico/6-categorias-e-investimentos | 14/09/2026 |
-| 7 | Lancamentos | a fazer | epico/7-lancamentos | |
-| 8 | Automacoes no banco | a fazer | epico/8-automacoes-no-banco | |
-| 9 | Check de baixa e pagamentos | a fazer | epico/9-baixa-e-pagamentos | |
-| 10 | Dashboard e Balanco | a fazer | epico/10-dashboard-e-balanco | |
-| 11 | Agenda | a fazer | epico/11-agenda | |
-| 12 | Realtime e notificacoes | a fazer | epico/12-realtime-e-notificacoes | |
-| 13 | PWA, offline e deploy | a fazer | epico/13-pwa-e-deploy | |
-| 14 | Qualidade e entrega | a fazer | epico/14-qualidade-e-entrega | |
+| 7 | Lancamentos | concluido | epico/7-lancamentos | 14/09/2026 |
+| 8 | Automacoes no banco | concluido | epico/7-lancamentos | 14/09/2026 |
+| 9 | Check de baixa e pagamentos | concluido | epico/7-lancamentos | 14/09/2026 |
+| 10 | Dashboard e Balanco | concluido | epico/7-lancamentos | 14/09/2026 |
+| 11 | Agenda | concluido | epico/7-lancamentos | 14/09/2026 |
+| 12 | Realtime e notificacoes | concluido | epico/7-lancamentos | 14/09/2026 |
+| 13 | PWA, offline e deploy | concluido | epico/7-lancamentos | 14/09/2026 |
+| 14 | Qualidade e entrega | concluido | epico/7-lancamentos | 14/09/2026 |
 
 Status possiveis: a fazer, em andamento, concluido, bloqueado.
+
+Sobre a coluna Branch: do Epico 7 em diante tudo saiu na mesma branch. Os epicos
+7, 8 e 9 sao inseparaveis na pratica (o CRUD de lancamento depende das funcoes do
+banco, que dependem do ciclo da baixa), e o Rodolfo pediu para seguir ate o fim
+sem parar. Cada epico tem o proprio commit, com o que foi feito e o que foi
+testado escrito na mensagem.
 
 ## Pontos de design a confirmar
 
@@ -104,6 +116,16 @@ Status possiveis: a fazer, em andamento, concluido, bloqueado.
 - Feito: leitura dos cinco documentos; copia do CLAUDE.md para a raiz e dos demais para `docs/`; `.gitignore`, `.env.example` e `.env.local` preenchido com a URL e a anon key do projeto ESTLIM-Finance (confirmado fora do versionamento); levantamento do ambiente (Node 24.14, pnpm 11.1.3, git 2.53, sem gh, sem CLI da Vercel e sem CLI do Supabase); confirmacao de que o banco esta vazio; entrevista dos blocos 1 a 5; primeiro commit local (`fdf6076`).
 - Pendente: push para o GitHub (B1), projeto e variaveis na Vercel (B2 e B3).
 - Proximo passo: Epico 1, fundacao tecnica.
+
+### Sessao 1 · 14/09/2026 · Epicos 7 a 14
+- Epicos 7, 8 e 9 juntos, porque sao inseparaveis: `fn_criar_lancamentos` gerando 1 ou N parcelas numa transacao, fatura automatica ao criar cartao, gatilhos que zeram o limite, somam no investimento e acertam o status, virada de mes e atrasados no pg_cron. Na tela: lista agrupada com os oito filtros, CRUD completo com os tres tipos, e o check de baixa capturando data e hora do clique.
+- Epico 10: Dashboard com card de saldo animado, seis indicadores, donut e barras desenhados como no prototipo, proximos vencimentos com check, Destaques dinamicos e o Balanco detalhado com aprovacao manual.
+- Epico 11: Agenda com calendario, marcadores por dia e lista do dia selecionado.
+- Epico 12: Realtime nas nove tabelas invalidando so os caches que cada uma suja, e a central de notificacoes com as quatro regras.
+- Epico 13: PWA com manifest, service worker, cache offline no IndexedDB com teto de um dia, pilulas de instalacao, versao nova e offline, icones gerados por script e `vercel.json`.
+- Epico 14: 40 testes de unidade dos formatadores, mascaras, formas e erros; suite SQL cobrindo os oito fluxos criticos; README de operacao e backup; revisao de responsivo (zero estouro horizontal nas sete telas a 375px) e de acessibilidade (nenhum botao sem nome, nenhuma imagem sem alt, foco visivel).
+- Defeitos encontrados e corrigidos no caminho: receita nascendo atrasada, categoria padrao caindo em Ajuste de saldo, numero animado congelando com a aba oculta, cache limpo a cada renovacao de token, e duas funcoes do cron expostas como rota REST.
+- Pendente: push no celular (B7), protecao de senha vazada (B8), projeto na Vercel (B2 e B3) e o cadastro dos dados reais.
 
 ### Sessao 1 · 14/09/2026 · Epico 6
 - Feito: tela de Categorias com orcamento mensal, barra de consumo e alerta de estouro em vermelho; CRUD com icone e cor obrigatorios; as tres categorias do sistema com nome travado e sem lixeira. Tela Investir com patrimonio total, quebra entre Ativos e Caixinhas, listagem agrupada, vinculo com conta cadastrada ou corretora, e CRUD de corretoras com upload de logo para o bucket privado.
@@ -148,7 +170,8 @@ Status possiveis: a fazer, em andamento, concluido, bloqueado.
 | CLI do Supabase nao instalada | As migrations vao pelo MCP. Instalar quando for preciso rodar Edge Functions localmente (Epico 12) |
 | CLI da Vercel nao instalada | Deploy pelo git. Instalar se for preciso cadastrar variaveis de ambiente por linha de comando |
 | `fn_virada_mes` da especificacao tecnica descreve a media dos 3 ultimos pagos | Contradiz a decisao de 14/09/2026. Implementar com valor nulo e corrigir o texto do documento no Epico 8 |
-| Projeto sem testes automatizados | O Epico 14 monta a suite. Ate la a validacao e build, lint e conferencia visual nos dois temas |
+| Recharts instalado e nao usado | Os graficos seguem o desenho do prototipo. Remover a dependencia se ficar decidido que nunca vai entrar |
+| Relatorio anual consolidado fora do escopo | Suposicao S7, para validar depois |
 
 ## Ideias para versoes futuras
 

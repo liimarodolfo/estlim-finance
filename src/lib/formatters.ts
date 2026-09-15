@@ -71,3 +71,15 @@ export const iniciais = (nome: string): string => {
   const letras = ((partes[0]?.[0] ?? '') + (partes[1]?.[0] ?? '')).toUpperCase()
   return letras || 'US'
 }
+
+/**
+ * Data de um timestamptz no fuso de quem esta olhando. Cortar os 10 primeiros
+ * caracteres do ISO daria a data em UTC, que depois das 21h no Brasil ja e o
+ * dia seguinte: um balanco aprovado as 21h de 14/09 aparecia como 15/09.
+ */
+export const fmtDataLocal = (timestamp: string | null | undefined): string => {
+  if (!timestamp) return ''
+  const d = new Date(timestamp)
+  if (Number.isNaN(d.getTime())) return ''
+  return `${doisDigitos(d.getDate())}/${doisDigitos(d.getMonth() + 1)}/${d.getFullYear()}`
+}
