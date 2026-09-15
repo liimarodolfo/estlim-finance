@@ -57,6 +57,15 @@ export function Donut({ fatias }: Props) {
 
   return (
     <div className="chart-wrap">
+      <svg width="132" height="132" viewBox="0 0 42 42" id="donut" role="img" aria-label="Gastos por categoria">
+        {segmentos}
+        <text x="21" y="20.4" textAnchor="middle" fontSize="2.3" fill="var(--muted)" style={{ letterSpacing: '.06em' }}>
+          GASTOS
+        </text>
+        <text x="21" y="24.4" textAnchor="middle" fontSize="4.4" fontWeight="800" fill="var(--ink)" style={{ letterSpacing: '-.04em' }}>
+          {total >= 1000 ? `R$ ${totalCurto}` : totalCurto}
+        </text>
+      </svg>
       <div className="donut-legend">
         {fatias.length === 0 ? (
           <div className="empty">Sem despesas no mês</div>
@@ -75,15 +84,6 @@ export function Donut({ fatias }: Props) {
           ))
         )}
       </div>
-      <svg width="132" height="132" viewBox="0 0 42 42" id="donut" role="img" aria-label="Gastos por categoria">
-        {segmentos}
-        <text x="21" y="20.4" textAnchor="middle" fontSize="2.3" fill="var(--muted)" style={{ letterSpacing: '.06em' }}>
-          GASTOS
-        </text>
-        <text x="21" y="24.4" textAnchor="middle" fontSize="4.4" fontWeight="800" fill="var(--ink)" style={{ letterSpacing: '-.04em' }}>
-          {total >= 1000 ? `R$ ${totalCurto}` : totalCurto}
-        </text>
-      </svg>
     </div>
   )
 }

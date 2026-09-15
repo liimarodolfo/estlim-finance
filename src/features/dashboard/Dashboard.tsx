@@ -46,7 +46,7 @@ function Indicador({
       <div className="sc-body">
         <span className="sc-lbl">{rotulo}</span>
         <div className="sc-val">
-          <NumeroAnimado valor={valor} />
+          <NumeroAnimado valor={valor} como="b" />
           <i className="trend" style={{ color: corApoio }}>
             {direcao ? (
               <i className={`fa-solid fa-arrow-trend-${direcao}`} aria-hidden="true" />
@@ -138,7 +138,7 @@ export default function Dashboard() {
         <div className="hero-label">
           Saldo previsto de {MESES_LONGOS[mes]} de {ano}
         </div>
-        <NumeroAnimado valor={totalReceitas - totalDespesas} className="hero-value" />
+        <NumeroAnimado valor={totalReceitas - totalDespesas} className="hero-value" como="div" />
         <div className="hero-sub">
           {fmtMoeda(totalReceitas)} previstos · {fmtMoeda(totalDespesas)} comprometidos
         </div>

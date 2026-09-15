@@ -37,5 +37,6 @@ type Props = {
 /** Selo de status. O aporte concluído aparece como aplicado, em roxo. */
 export function StatusBadge({ status, tipo }: Props) {
   const exibido = status === 'pago' ? concluido(tipo) : status
-  return <span className={`tx-status ${CLASSE[exibido]}`}>{ROTULO[exibido]}</span>
+  // O protótipo usa <i> aqui, e o reset dele já neutraliza o itálico.
+  return <i className={`tx-status ${CLASSE[exibido]}`}>{ROTULO[exibido]}</i>
 }

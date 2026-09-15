@@ -13,9 +13,9 @@ type Props = {
 export function MiniBadge({ tom = 'neutro', icone, children, titulo }: Props) {
   const classe = tom === 'neutro' ? 'mini-badge' : `mini-badge ${tom}`
   return (
-    <span className={classe} title={titulo ?? (typeof children === 'string' ? children : undefined)}>
+    <i className={classe} title={titulo ?? (typeof children === 'string' ? children : undefined)}>
       {icone ? <i className={`fa-solid ${icone}`} aria-hidden="true" /> : null}
       {children}
-    </span>
+    </i>
   )
 }

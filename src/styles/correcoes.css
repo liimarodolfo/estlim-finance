@@ -89,3 +89,40 @@
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(0, 153, 255, 0.15);
 }
+
+/* O prototipo ja impede o scroll horizontal do documento com overflow-x:clip no
+   html, mas isso nao segura o GESTO no celular. Arrastar para o lado ainda
+   encadeia para o navegador: no Android e no iOS vira o bounce lateral ou o
+   swipe de voltar pagina, e a tela inteira parece se deslocar. Estas regras
+   cortam esse encadeamento sem mexer em layout nenhum.
+
+   As tres faixas que rolam de proposito (meses, filtros, filtros por dono)
+   ganham contain: elas continuam rolando, mas o gesto para nelas em vez de
+   vazar para a pagina quando chega ao fim. */
+html,
+body {
+  overscroll-behavior-x: none;
+}
+.months,
+.filters,
+.owner-filters {
+  overscroll-behavior-x: contain;
+}
+
+/* O prototipo marca o que e clicavel pelo atributo HTML: .tx[onclick],
+   .bank-row[onclick], .credit-card[onclick] e .cat-row[onclick] ganham
+   cursor de mao, e duas delas ganham realce no hover. O React nao emite
+   onclick no DOM (a prop onClick nao vira atributo), entao aquelas quatro
+   regras nunca casavam e as linhas clicaveis ficavam sem cursor e sem hover.
+   Aqui elas sao reescritas no gancho que o React usa de verdade, o role. */
+.tx[role='button'],
+.bank-row[role='button'],
+.credit-card[role='button'],
+.cat-row[role='button'] {
+  cursor: pointer;
+}
+.bank-row[role='button']:hover,
+.cat-row[role='button']:hover {
+  background: var(--surface);
+  border-radius: var(--r-md);
+}

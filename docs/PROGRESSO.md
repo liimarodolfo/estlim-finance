@@ -124,6 +124,52 @@ testado escrito na mensagem.
 
 ## Diario de sessoes
 
+### Sessao 5 · 15/09/2026 · Fidelidade ao prototipo e o gesto no mobile
+
+O Rodolfo apontou duas coisas: no celular da para arrastar a tela para os lados,
+e o design system nao foi aplicado direito, com a fonte dos numeros do Resumo
+rapido em outro tamanho e peso.
+
+**O gesto lateral.** Nenhuma rota tem scroll horizontal de verdade: o
+`scrollWidth` bate com a largura em todas as sete. O prototipo ja usa
+`overflow-x:clip` no html, mas isso segura o scroll, nao o GESTO: no celular
+arrastar para o lado encadeia para o navegador e vira bounce lateral ou swipe de
+voltar pagina, e a tela inteira parece se deslocar. Resolvido com
+`overscroll-behavior-x: none` no html e no body, e `contain` nas tres faixas que
+rolam de proposito, para o gesto parar nelas em vez de vazar.
+
+**A fidelidade.** O CSS estava correto: comparando o bloco `<style>` do
+`ESTLIM_v40.html` com `prototipo.css` mais `tokens.css`, linha a linha, faltam
+zero regras. O problema era o JSX, que trocou as TAGS que o prototipo usa como
+gancho de estilo. O prototipo estiliza por seletor de elemento, entao trocar a
+tag apaga a regra em silencio:
+
+- `.stat-card b` era o numero do Resumo rapido. Ele saia de um `<span>` do
+  NumeroAnimado, entao caia para 15px e peso normal em vez de 21px e peso 800
+  (18px no mobile), sem o tracking e sem tabular-nums. Era exatamente o que ele
+  viu.
+- `.hero-value` traz `margin: 8px 0 6px`, que uma caixa inline ignora. O valor
+  do saldo estava num `<span>`, e o card ficava mais apertado que o desenho.
+- No donut, a legenda vinha antes do SVG. No mobile o `order` do prototipo
+  reordenava e escondia o erro; no desktop os dois apareciam espelhados.
+- `.tx[onclick]`, `.bank-row[onclick]` e `.cat-row[onclick]` dao cursor de mao e
+  hover no prototipo. O React nao emite `onclick` como atributo, entao aquelas
+  regras nunca casavam: as linhas clicaveis ficavam sem cursor e sem realce.
+  Reescritas em `correcoes.css` no gancho que o React usa, o `role`.
+- StatusBadge e MiniBadge usavam `<span>` onde o prototipo usa `<i>`. Sem efeito
+  visual, porque o reset ja neutraliza o italico, mas fora da estrutura de
+  referencia.
+
+Conferido medindo os estilos computados do prototipo e da implementacao lado a
+lado, na mesma largura: hero-value, hero-label, hero-sub, hero-stat b,
+stat-card b, sc-lbl, sc-ico, section-title, card, month-pill, legend-item b,
+tx-info b, tx-val b, tx-status e mini-badge batem todos, tamanho, peso,
+tracking, padding e raio.
+
+Licao para o resto do projeto: quando o prototipo estiliza por tag, a tag e
+parte da especificacao. Um `<span>` no lugar de um `<b>` nao quebra nada, nao
+avisa, e some do teste. O NumeroAnimado agora recebe qual elemento renderizar.
+
 ### Sessao 4 · 15/09/2026 · A fatura acumula e fecha
 
 O Rodolfo apontou o buraco que a sessao 3 deixou. Ela resolveu a fatura JA
