@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Tela } from '@/ui/Tela'
 import { Chip } from '@/ui/Chip'
-import { agora, fmtMoeda } from '@/lib/formatters'
-import { confetti } from '@/lib/confetti'
+import { fmtMoeda } from '@/lib/formatters'
 import { mensagemDeErro } from '@/lib/erros'
 import { toast } from '@/store/useToasts'
 import { useFiltros } from '@/store/useFiltros'
@@ -10,17 +9,10 @@ import { useNovoLancamento } from '@/store/useNovoLancamento'
 import { useCarteiras } from '@/hooks/useCarteiras'
 import { useCategorias } from '@/hooks/useCategorias'
 import { useInvestimentos } from '@/hooks/useInvestimentos'
-import {
-  useDarBaixa,
-  useDesfazerBaixa,
-  useExcluirLancamento,
-  useLancamentos,
-  type LancamentoComBaixa,
-} from '@/hooks/useLancamentos'
+import { useExcluirLancamento, useLancamentos, type LancamentoComBaixa } from '@/hooks/useLancamentos'
+import { useFluxoDeBaixa } from '@/hooks/useFluxoDeBaixa'
 import { LinhaLancamento } from '@/features/lancamentos/LinhaLancamento'
 import { SheetLancamento } from '@/features/lancamentos/SheetLancamento'
-import { SheetPagamento } from '@/features/lancamentos/SheetPagamento'
-import { SheetValor } from '@/features/lancamentos/SheetValor'
 import type { LancTipo } from '@/types/database'
 
 type Filtro =
@@ -46,18 +38,13 @@ export default function Lancamentos() {
   const { data: carteiras = [] } = useCarteiras()
   const { data: investimentos = [] } = useInvestimentos()
 
-  const darBaixa = useDarBaixa()
-  const desfazer = useDesfazerBaixa()
   const excluir = useExcluirLancamento()
+  const { marcar, abrirValor, recemPago, sheets } = useFluxoDeBaixa()
 
   const [filtro, setFiltro] = useState<Filtro>('todos')
   const [sheetAberto, setSheetAberto] = useState(false)
-  const [pagamentoAberto, setPagamentoAberto] = useState(false)
-  const [valorAberto, setValorAberto] = useState(false)
   const [emFoco, setEmFoco] = useState<LancamentoComBaixa | null>(null)
   const [tipoNovo] = useState<LancTipo>('despesa')
-  const [recemPago, setRecemPago] = useState<string | null>(null)
-  const [momento, setMomento] = useState(agora())
 
   // O FAB do shell pede um lançamento novo incrementando este contador.
   const pedido = useNovoLancamento((e) => e.pedido)
@@ -99,55 +86,6 @@ export default function Lancamentos() {
       .map((g) => ({ ...g, total: soma(g.itens) }))
   }, [filtrados, filtro])
 
-  /**
-   * Regra do check: a data e a hora são as do clique, sempre. Valor fixo já
-   * definido conclui num toque só. Valor variável ou sem valor abre o sheet
-   * com esse mesmo instante já preenchido.
-   */
-  const aoMarcar = async (l: LancamentoComBaixa, evento: React.MouseEvent<HTMLButtonElement>) => {
-    const instante = agora()
-
-    if (l.status === 'pago') {
-      try {
-        await desfazer.mutateAsync(l.id!)
-        const destino =
-          l.tipo === 'investimento' ? 'a investir' : l.tipo === 'receita' ? 'a receber' : 'a pagar'
-        toast(`${l.descricao} voltou para ${destino}`, 'fa-rotate-left')
-      } catch (erro) {
-        toast(mensagemDeErro(erro), 'fa-triangle-exclamation')
-      }
-      return
-    }
-
-    const conclusaoDireta = l.tipo_valor === 'fixo' && l.valor_exibido != null
-    if (!conclusaoDireta) {
-      setMomento(instante)
-      setEmFoco(l)
-      setPagamentoAberto(true)
-      return
-    }
-
-    const r = evento.currentTarget.getBoundingClientRect()
-    try {
-      await darBaixa.mutateAsync({
-        lancamentoId: l.id!,
-        dataPagamento: instante.dataISO,
-        horaPagamento: instante.hora,
-        valorPago: l.valor_exibido!,
-        formaMetodo: l.forma_metodo,
-        formaRef: l.forma_ref,
-      })
-      confetti(r.left + r.width / 2, r.top)
-      setRecemPago(l.id!)
-      window.setTimeout(() => setRecemPago(null), 1300)
-      const verbo =
-        l.tipo === 'investimento' ? 'aplicada' : l.tipo === 'receita' ? 'recebida' : 'paga'
-      toast(`${l.descricao} ${verbo} · ${instante.dataBR} às ${instante.hora}`, 'fa-circle-check')
-    } catch (erro) {
-      toast(mensagemDeErro(erro), 'fa-triangle-exclamation')
-    }
-  }
-
   const aoExcluir = async (l: LancamentoComBaixa) => {
     try {
       await excluir.mutateAsync(l.id!)
@@ -162,11 +100,6 @@ export default function Lancamentos() {
     setSheetAberto(true)
   }
 
-  const abrirValor = (l: LancamentoComBaixa) => {
-    setEmFoco(l)
-    setValorAberto(true)
-  }
-
   const linha = (l: LancamentoComBaixa, i: number) => (
     <LinhaLancamento
       key={l.id}
@@ -177,7 +110,7 @@ export default function Lancamentos() {
       investimento={investimentoDe(l)}
       destacado={recemPago === l.id}
       aoAbrir={() => abrirEdicao(l)}
-      aoMarcar={(e) => aoMarcar(l, e)}
+      aoMarcar={(e) => marcar(l, e)}
       aoExcluir={() => aoExcluir(l)}
       aoAdicionarValor={() => abrirValor(l)}
     />
@@ -226,22 +159,7 @@ export default function Lancamentos() {
         tipoInicial={tipoNovo}
       />
 
-      <SheetPagamento
-        key={`pag-${emFoco?.id ?? ''}-${pagamentoAberto}`}
-        aberto={pagamentoAberto}
-        aoFechar={() => setPagamentoAberto(false)}
-        lancamento={emFoco}
-        categoria={emFoco ? categoriaDe(emFoco) : undefined}
-        momentoDoClique={momento}
-      />
-
-      <SheetValor
-        key={`valor-${emFoco?.id ?? ''}-${valorAberto}`}
-        aberto={valorAberto}
-        aoFechar={() => setValorAberto(false)}
-        lancamento={emFoco}
-        categoria={emFoco ? categoriaDe(emFoco) : undefined}
-      />
+      {sheets}
     </Tela>
   )
 }
