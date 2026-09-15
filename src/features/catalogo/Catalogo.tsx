@@ -54,7 +54,7 @@ export default function Catalogo() {
 
       <CardGradiente>
         <div className="hero-label">Card de gradiente, com número animado</div>
-        <NumeroAnimado valor={saldo} className="hero-value" />
+        <NumeroAnimado valor={saldo} className="hero-value" como="div" />
         <div className="hero-sub">Toque em trocar valor para ver a contagem</div>
         <div className="hero-stats">
           <div className="hero-stat">

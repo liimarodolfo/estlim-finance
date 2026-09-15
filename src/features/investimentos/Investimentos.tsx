@@ -79,7 +79,7 @@ export default function Investimentos() {
     <Tela id="view-invest">
       <CardGradiente variante="carteira" gradiente={GRAD_INVEST}>
         <div className="hero-label">Patrimônio investido</div>
-        <NumeroAnimado valor={total} className="hero-value" />
+        <NumeroAnimado valor={total} className="hero-value" como="div" />
         <div className="hero-sub">
           {investimentos.length} investimento{investimentos.length === 1 ? '' : 's'} em contas e
           corretoras

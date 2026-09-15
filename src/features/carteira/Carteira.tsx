@@ -75,7 +75,7 @@ export default function Carteira() {
     <Tela id="view-wallet">
       <CardGradiente variante="carteira" gradiente={GRADIENTE_DONO[perfil]} key={perfil}>
         <div className="hero-label">{tituloDoPerfil(perfil)}</div>
-        <NumeroAnimado valor={saldoTotal} className="hero-value" />
+        <NumeroAnimado valor={saldoTotal} className="hero-value" como="div" />
         <div className="hero-sub">{subtituloDoPerfil(perfil)}</div>
         <div className="ws-row">
           <div className="ws-item">

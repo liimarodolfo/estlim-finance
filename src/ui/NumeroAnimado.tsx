@@ -6,13 +6,20 @@ type Props = {
   className?: string
   /** Fora de moeda, para contagens simples. */
   formatar?: (v: number) => string
+  /**
+   * A tag importa. O protótipo estiliza por seletor de elemento em
+   * `.stat-card b`, e num span aquela regra não pega: o número sai no tamanho
+   * e no peso do corpo. E `.hero-value` traz `margin: 8px 0 6px`, que uma caixa
+   * inline simplesmente ignora, apertando o card do saldo.
+   */
+  como?: 'span' | 'b' | 'div'
 }
 
 const DURACAO = 900
 
 /** Conta até o valor ao trocar de mês. Com movimento reduzido, já entra pronto. */
-export function NumeroAnimado({ valor, className, formatar = fmtMoeda }: Props) {
-  const alvo = useRef<HTMLSpanElement>(null)
+export function NumeroAnimado({ valor, className, formatar = fmtMoeda, como = 'span' }: Props) {
+  const alvo = useRef<HTMLElement>(null)
   const anterior = useRef(0)
 
   useEffect(() => {
@@ -54,5 +61,7 @@ export function NumeroAnimado({ valor, className, formatar = fmtMoeda }: Props) 
     }
   }, [valor, formatar])
 
-  return <span ref={alvo} className={className} />
+  const Tag = como
+  // O ref é escrito só por textContent, então o elemento concreto não importa.
+  return <Tag ref={alvo as React.RefObject<never>} className={className} />
 }
