@@ -447,6 +447,33 @@ export type Database = {
       }
     }
     Functions: {
+      fn_criar_lancamentos: {
+        Args: {
+          p_tipo: Database['public']['Enums']['lanc_tipo']
+          p_descricao: string
+          p_pagar_a: string | null
+          p_natureza: Database['public']['Enums']['natureza_tipo']
+          p_tipo_valor: Database['public']['Enums']['valor_tipo']
+          p_valor: number | null
+          p_data_emissao: string | null
+          p_data_vencimento: string
+          p_categoria_id: string | null
+          p_forma_metodo: Database['public']['Enums']['metodo_tipo'] | null
+          p_forma_ref: string | null
+          p_dono: Database['public']['Enums']['dono_tipo']
+          p_investimento_id?: string | null
+          p_parcelas?: number
+        }
+        Returns: string
+      }
+      fn_marcar_atrasados: {
+        Args: Record<string, never>
+        Returns: number
+      }
+      fn_virada_mes: {
+        Args: { p_referencia?: string }
+        Returns: number
+      }
       fn_criar_ajuste: {
         Args: {
           p_carteira_id: string
