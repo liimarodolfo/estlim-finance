@@ -9,12 +9,24 @@ Arquivo vivo. O Claude Code le no inicio de toda sessao e atualiza ao fim de cad
 | B1 | Push para o GitHub bloqueado pelo modo automatico da sessao | Commits ficam locais ate alguem empurrar | Rodolfo empurra pelo GitHub Desktop, ou libera uma regra de Bash para `git push` nas configuracoes do Claude Code |
 | B7 | Notificacao push no celular nao implementada | Os tres gatilhos escolhidos (vespera, no dia e atraso) existem so como notificacao dentro do app, no sino | Precisa de chaves VAPID, uma Edge Function com web-push, uma tabela de assinaturas e a permissao concedida no aparelho. Nada disso e caro, mas depende de configurar segredo na Edge Function, o que a CLI faz e o MCP nao |
 | B8 | Protecao contra senha vazada desligada no Supabase Auth | O unico alerta que sobrou no linter de seguranca | Ligar em Authentication > Policies > Password Security no painel. E um clique |
-| B2 | Projeto na Vercel ainda nao criado | Sem deploy publicado | Precisa do teamId da conta pessoal (a conta Hobby nao aparece em `list_teams`) e de um build valido no repositorio. Fica para o fim do Epico 1, quando existir app para buildar |
-| B3 | Variaveis de ambiente na Vercel nao cadastradas | Build publicado sem Supabase | Depende de B2. As tres variaveis estao em `.env.example` |
+| B2 | Resolvido em 15/09/2026 | Projeto `estlim-finance` criado na conta `rodolfo-liimas-projects`, com o repositorio `liimarodolfo/estlim-finance` conectado na branch `main` | Feito pelo Rodolfo no painel. O MCP da Vercel so consegue criar deploy: `create_git_project` devolve 403 pedindo reautenticacao do escopo, e nao existe ferramenta nenhuma para variavel de ambiente |
+| B3 | Resolvido em 15/09/2026 | As tres variaveis cadastradas nos tres ambientes | Feito pelo Rodolfo, importando o `.env.vercel` |
 | B4 | Senha do banco Supabase (`SUPABASE_DB_PASSWORD`) nao informada | `pnpm types:supabase` e a CLI nao rodam | Contornado: as migrations vao pelo MCP e os tipos sao gerados pelo MCP tambem. Informar a senha so se quiser rodar a CLI localmente |
 | B5 | Tela de Perfil nunca rodou com uma conta de verdade | Foto, salvar dados e troca de senha compilam e estao escritos, mas nao conferi na tela | Rodolfo abre o Perfil, troca a foto e salva o nome. Se algo sair torto, e so avisar |
 
 Nenhum bloqueio impede o andamento dos epicos 1 e 2.
+
+## Publicacao
+
+| Item | Onde |
+|---|---|
+| Repositorio | github.com/liimarodolfo/estlim-finance, branch `main` |
+| Projeto Vercel | `estlim-finance`, conta `rodolfo-liimas-projects`, plano Hobby |
+| Endereco | https://estlim-finance.vercel.app |
+| Banco | Supabase `ESTLIM-Finance`, ref `uxxgvbiuknitylnmkcvr` |
+
+Todo push na `main` publica sozinho. Conectar o repositorio nao dispara build: a
+Vercel espera o primeiro push depois da conexao.
 
 ## Decisoes tomadas
 
