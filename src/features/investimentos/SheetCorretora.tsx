@@ -141,6 +141,7 @@ export function SheetCorretora({ aberto, aoFechar }: Props) {
           type="file"
           accept="image/png,image/jpeg,image/webp,image/svg+xml"
           hidden
+          aria-label="Arquivo do logo da corretora"
           onChange={escolherLogo}
         />
       </Campo>

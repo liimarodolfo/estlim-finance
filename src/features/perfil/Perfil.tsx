@@ -95,6 +95,7 @@ export default function Perfil() {
         type="file"
         accept="image/png,image/jpeg,image/webp,image/gif"
         hidden
+        aria-label="Arquivo da foto de perfil"
         onChange={aoTrocarFoto}
       />
 

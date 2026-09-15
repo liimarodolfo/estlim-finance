@@ -28,10 +28,15 @@ pnpm types:supabase
 | `0008_ajuste_e_exclusao_de_carteira.sql` | `fn_criar_ajuste` e `fn_excluir_carteira` |
 | `0009_categorias_protegidas_e_exclusoes.sql` | Trava das categorias de sistema e as exclusoes de categoria, corretora e investimento |
 | `0010_mensagens_de_erro_em_portugues.sql` | So o texto das excecoes, que aparecem no toast |
+| `0011_parcelas_e_fatura_automatica.sql` | `fn_criar_lancamentos` e os gatilhos da fatura, do aporte e do status |
+| `0012_virada_de_mes_e_atrasados.sql` | Virada de mes e atrasados, agendados com pg_cron |
+| `0013_so_despesa_nasce_atrasada.sql` | Receita vencida segue pendente, nao atrasada |
+| `0014_realtime.sql` | Tabelas na publicacao do Realtime |
+| `0015_endurecimento_das_funcoes.sql` | `search_path` fixo em tudo e as funcoes do cron fora da API |
 
 A numeracao 0003, 0004 e 0005 estava reservada na especificacao tecnica para funcoes,
 triggers e cron. Como storage e o ajuste de seguranca entraram antes, o Epico 8 comeca
-em `0011_functions.sql`.
+em `0016_*.sql`.
 
 ## Decisoes que valem lembrar
 

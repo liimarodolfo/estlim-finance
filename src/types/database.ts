@@ -466,14 +466,6 @@ export type Database = {
         }
         Returns: string
       }
-      fn_marcar_atrasados: {
-        Args: Record<string, never>
-        Returns: number
-      }
-      fn_virada_mes: {
-        Args: { p_referencia?: string }
-        Returns: number
-      }
       fn_criar_ajuste: {
         Args: {
           p_carteira_id: string
