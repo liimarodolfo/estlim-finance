@@ -65,7 +65,7 @@ export function LinhaLancamento({
         l.cartao_fechamento != null ? ` · fecha dia ${l.cartao_fechamento}` : ''
       }${jaFechou ? ' · confirme o valor fechado' : ''}`
     : descascada
-    ? `Fatura ${fmtMoeda(l.valor_caixa)} · ${fmtMoeda(l.valor_detalhado)} já lançados em detalhe`
+    ? `${fmtMoeda(l.valor_detalhado)} lançados em detalhe · ${fmtMoeda(l.valor_exibido)} do cartão`
     : noCredito && pago
       ? `Na fatura de ${mesDaFatura}/${anoDaFatura} · ${fmtMoeda(l.pagamento!.valor_pago)}`
       : pago
@@ -74,7 +74,11 @@ export function LinhaLancamento({
 
   const semValor = (l.valor_exibido == null && !pago) || jaFechou
   const sinal = aporte ? '↗' : receita ? '+' : '−'
-  const valorMostrado = faturaAberta
+  // Na fatura o número em destaque é o que sai da conta, sempre: aberta, é o
+  // acumulado até agora; fechada, é o valor confirmado. O que ela representa em
+  // despesa do mês fica no subtítulo, porque parte já está nas linhas das
+  // compras.
+  const valorMostrado = ehFatura
     ? (l.valor_caixa ?? 0)
     : (l.valor_realizado ?? l.valor_exibido ?? 0)
 

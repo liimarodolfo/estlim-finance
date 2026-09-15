@@ -124,6 +124,42 @@ testado escrito na mensagem.
 
 ## Diario de sessoes
 
+### Sessao 7 · 15/09/2026 · A fatura na lista
+
+O Rodolfo descreveu o fluxo do cartao do jeito dele: durante o mes a fatura so
+acumula o que foi lancado; no fechamento aparece a opcao de informar o valor
+total; a diferenca vira gasto do cartao; e o valor informado e o que vai ser
+pago. O modelo ja era esse desde a sessao 4. O que faltava era a tela mostrar.
+
+Ele escolheu: a opcao de fechar continua no dia de FECHAMENTO, a linha da fatura
+passa a mostrar o valor a pagar, e a fatura aberta ganha grupo proprio.
+
+**A armadilha do "mostrar o valor a pagar".** No exemplo dele, uma compra de
+R$ 100 e fatura fechada em R$ 500. Se a linha da fatura mostra R$ 500 e a linha
+da compra mostra R$ 100 no mesmo grupo, o subtotal soma R$ 600 e mente: os
+R$ 100 estao DENTRO dos R$ 500.
+
+Por isso a fatura foi para um grupo so dela, "Faturas do cartao", em qualquer
+estado. O subtotal desse grupo soma o que sai da conta; os outros grupos somam
+competencia e nunca contem fatura. Nenhum subtotal duplica, e a fatura ganha o
+destaque que ele queria. Isso tambem atende o "grupo separado" que ele pediu
+para a fatura aberta, sem criar dois lugares diferentes conforme o estado.
+
+A linha ficou assim, fechada:
+
+  Fatura Azul Infinite
+  R$ 119,00 lancados em detalhe . R$ 383,79 do cartao
+                                           - R$ 502,79
+
+O numero em destaque e o que sai da conta. A composicao fica no subtitulo,
+porque parte dela ja aparece nas linhas das proprias compras.
+
+Testado com o exemplo dele ponta a ponta: cartao novo, compra de R$ 100, fatura
+aberta acumulando, fechamento em R$ 500 pela tela, e a linha passando a mostrar
+"R$ 100,00 lancados em detalhe . R$ 400,00 do cartao" com - R$ 500,00. O Balanco
+continua somando por competencia e fechou em R$ 1.356,24 com os dois cartoes, o
+que confere: 502,79 mais 500 mais 193,45 mais 160.
+
 ### Sessao 6 · 15/09/2026 · Instalar o app no Safari
 
 O Rodolfo abriu no Safari e o convite para instalar nao apareceu.
