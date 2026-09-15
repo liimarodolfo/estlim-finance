@@ -76,14 +76,24 @@ export default function Lancamentos() {
     if (filtro !== 'todos') return null
     const soma = (arr: LancamentoComBaixa[]) =>
       arr.reduce((s, l) => s + (l.valor_realizado ?? l.valor_exibido ?? 0), 0)
+    // A fatura soma pelo que sai da conta, e por isso vive num grupo só dela.
+    // Se ficasse junto das outras, o subtotal contaria duas vezes o que já está
+    // dentro dela: a compra no crédito aparece na própria linha e de novo no
+    // valor da fatura.
+    const somaCaixa = (arr: LancamentoComBaixa[]) =>
+      arr.reduce((s, l) => s + (l.valor_caixa ?? 0), 0)
+    const ehFatura = (l: LancamentoComBaixa) => l.cartao_id !== null
+    const semFatura = filtrados.filter((l) => !ehFatura(l))
+
     return [
-      { titulo: 'A pagar', icone: 'fa-arrow-up-from-bracket', itens: filtrados.filter((l) => l.tipo === 'despesa' && l.status !== 'pago') },
-      { titulo: 'A receber', icone: 'fa-hand-holding-dollar', itens: filtrados.filter((l) => l.tipo === 'receita' && l.status !== 'pago') },
-      { titulo: 'A investir', icone: 'fa-seedling', itens: filtrados.filter((l) => l.tipo === 'investimento' && l.status !== 'pago') },
-      { titulo: 'Concluídos', icone: 'fa-circle-check', itens: filtrados.filter((l) => l.status === 'pago') },
+      { titulo: 'Faturas do cartão', icone: 'fa-credit-card', itens: filtrados.filter(ehFatura), caixa: true },
+      { titulo: 'A pagar', icone: 'fa-arrow-up-from-bracket', itens: semFatura.filter((l) => l.tipo === 'despesa' && l.status !== 'pago'), caixa: false },
+      { titulo: 'A receber', icone: 'fa-hand-holding-dollar', itens: semFatura.filter((l) => l.tipo === 'receita' && l.status !== 'pago'), caixa: false },
+      { titulo: 'A investir', icone: 'fa-seedling', itens: semFatura.filter((l) => l.tipo === 'investimento' && l.status !== 'pago'), caixa: false },
+      { titulo: 'Concluídos', icone: 'fa-circle-check', itens: semFatura.filter((l) => l.status === 'pago'), caixa: false },
     ]
       .filter((g) => g.itens.length > 0)
-      .map((g) => ({ ...g, total: soma(g.itens) }))
+      .map((g) => ({ ...g, total: g.caixa ? somaCaixa(g.itens) : soma(g.itens) }))
   }, [filtrados, filtro])
 
   const aoExcluir = async (l: LancamentoComBaixa) => {
