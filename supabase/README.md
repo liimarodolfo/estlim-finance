@@ -33,12 +33,27 @@ pnpm types:supabase
 | `0013_so_despesa_nasce_atrasada.sql` | Receita vencida segue pendente, nao atrasada |
 | `0014_realtime.sql` | Tabelas na publicacao do Realtime |
 | `0015_endurecimento_das_funcoes.sql` | `search_path` fixo em tudo e as funcoes do cron fora da API |
+| `0016_categoria_por_tipo.sql` | Categoria passa a dizer se serve a despesa, a receita ou a ambas |
+| `0017_observacoes_comprovante_e_baixa_no_cadastro.sql` | Colunas novas em `lancamentos`, bucket `comprovantes` e o check de ja pago no cadastro |
+| `0018_saldo_automatico_das_contas.sql` | Gatilho que faz o saldo da conta seguir os pagamentos, mais o recalculo retroativo |
 
 A numeracao 0003, 0004 e 0005 estava reservada na especificacao tecnica para funcoes,
-triggers e cron. Como storage e o ajuste de seguranca entraram antes, o Epico 8 comeca
-em `0016_*.sql`.
+triggers e cron. Como storage e o ajuste de seguranca entraram antes, a ordem do disco
+deixou de bater com a do documento. Vale a ordem do disco.
 
 ## Decisoes que valem lembrar
+
+- O saldo da conta nao e digitado, e consequencia. Quem move e o gatilho
+  `trg_saldo_da_conta`, que olha a forma do PAGAMENTO, nao a do lancamento, porque a
+  tela de baixa deixa pagar por um caminho diferente do previsto. So mexe quando a
+  referencia aponta para uma carteira `tipo = 'conta'`: cartao de credito e as
+  referencias de dinheiro (`'Rodolfo'`, `'Thainy'`) passam batido, e por isso o teste de
+  formato de uuid vem antes do cast, senao a baixa em dinheiro estouraria.
+- O `usado` do cartao continua sendo preenchido a mao, de proposito. Somar toda despesa
+  no credito ao limite utilizado quebraria a fatura automatica em compra parcelada, que
+  gera as N parcelas de uma vez.
+- O comprovante guarda o caminho no bucket, nunca a URL assinada. Link assinado vence; o
+  caminho nao.
 
 - `private.meu_casal()` e `security definer` de proposito. Se fosse invoker, a policy de
   `perfis` chamaria a si mesma e entraria em recursao. Ela mora em `private` porque o

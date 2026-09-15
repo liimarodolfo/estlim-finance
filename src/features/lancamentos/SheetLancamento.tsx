@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Sheet } from '@/ui/Sheet'
 import { Campo } from '@/ui/Campo'
 import { InputData } from '@/ui/InputData'
@@ -6,15 +6,18 @@ import { InputHora } from '@/ui/InputHora'
 import { InputMoeda } from '@/ui/InputMoeda'
 import { BotaoPill } from '@/ui/BotaoPill'
 import { BotaoExcluir } from '@/ui/BotaoExcluir'
-import { fmtData, fmtHora, paraISO } from '@/lib/formatters'
+import { CheckCircle } from '@/ui/CheckCircle'
+import { agora, fmtData, fmtHora, paraISO } from '@/lib/formatters'
 import { METODO_ICONE, fontesPara, metodosPara, rotuloDaFonte } from '@/lib/formas'
 import { mensagemDeErro } from '@/lib/erros'
 import { toast } from '@/store/useToasts'
 import { useCarteiras } from '@/hooks/useCarteiras'
 import { useCategorias } from '@/hooks/useCategorias'
 import { useInvestimentos } from '@/hooks/useInvestimentos'
+import { abrirComprovante, apagarComprovante, useEnviarComprovante } from '@/hooks/useComprovante'
 import {
   useAtualizarLancamento,
+  useCorrigirBaixa,
   useCriarLancamento,
   useExcluirLancamento,
   type LancamentoComBaixa,
@@ -25,7 +28,7 @@ const DONOS: Dono[] = ['Rodolfo', 'Thainy', 'Casal', 'RLiima']
 
 // Duas categorias nunca sao escolhidas a mao: Investimentos, porque o aporte
 // tem o campo de destino, e Ajuste de saldo, que so o fluxo de ajuste preenche.
-// Salario so aparece em receita.
+// O resto e filtrado pelo tipo da propria categoria.
 const SO_DO_SISTEMA = ['Investimentos', 'Ajuste de saldo']
 
 type Props = {
@@ -43,6 +46,9 @@ export function SheetLancamento({ aberto, aoFechar, lancamento, tipoInicial }: P
   const criar = useCriarLancamento()
   const atualizar = useAtualizarLancamento()
   const excluir = useExcluirLancamento()
+  const corrigirBaixa = useCorrigirBaixa()
+  const enviarComprovante = useEnviarComprovante()
+  const arquivoRef = useRef<HTMLInputElement>(null)
 
   // Fatura automática não troca de tipo nem de vínculo: quem manda nela é o cartão.
   const ehFatura = Boolean(lancamento?.cartao_id)
@@ -65,16 +71,27 @@ export function SheetLancamento({ aberto, aoFechar, lancamento, tipoInicial }: P
   )
   const [fonte, setFonte] = useState(lancamento?.forma_ref ?? '')
   const [dono, setDono] = useState<Dono>(lancamento?.dono ?? 'Casal')
+  const [observacoes, setObservacoes] = useState(lancamento?.observacoes ?? '')
+  const [comprovante, setComprovante] = useState(lancamento?.comprovante_url ?? null)
+  // O anexo que ja estava salvo. Serve para saber o que pode sumir do bucket
+  // sem risco: o que foi enviado agora e ainda nao pertence a lancamento nenhum.
+  const comprovanteSalvo = lancamento?.comprovante_url ?? null
+  const [nomeAnexo, setNomeAnexo] = useState('')
+  // No cadastro, o check diz que a conta ja foi paga ou recebida. A data e a
+  // hora nascem no agora e continuam editaveis, porque o lancamento pode estar
+  // sendo registrado depois do fato.
+  const [marcarPago, setMarcarPago] = useState(false)
 
   const jaPago = lancamento?.status === 'pago' && lancamento.pagamento !== null
   const aporte = tipo === 'investimento'
   const parcelada = natureza === 'parcelada'
+  const rotuloBaixa = aporte ? 'aplicado' : tipo === 'receita' ? 'recebida' : 'paga'
 
   const metodosDisponiveis = metodosPara(tipo)
   const fontes = fontesPara(metodo, carteiras)
 
   const categoriasDisponiveis = categorias.filter(
-    (c) => !SO_DO_SISTEMA.includes(c.nome) && (c.nome !== 'Salário' || tipo === 'receita'),
+    (c) => !SO_DO_SISTEMA.includes(c.nome) && (c.tipo === 'ambas' || c.tipo === tipo),
   )
   // Sem escolha explicita, cai na primeira da lista, nunca numa do sistema.
   const categoriaEscolhida =
@@ -93,6 +110,49 @@ export function SheetLancamento({ aberto, aoFechar, lancamento, tipoInicial }: P
   const trocarMetodo = (novo: MetodoPagamento) => {
     setMetodo(novo)
     setFonte('')
+  }
+
+  const alternarPago = () => {
+    const ligando = !marcarPago
+    setMarcarPago(ligando)
+    // Ao ligar sem data preenchida, cai no agora. O que ja foi digitado fica.
+    if (ligando && !dataPaga) {
+      const { dataBR, hora } = agora()
+      setDataPaga(dataBR)
+      setHoraPaga(hora)
+    }
+  }
+
+  const escolherArquivo = async (evento: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivo = evento.target.files?.[0]
+    evento.target.value = ''
+    if (!arquivo) return
+    try {
+      const caminho = await enviarComprovante.mutateAsync(arquivo)
+      setComprovante(caminho)
+      setNomeAnexo(arquivo.name)
+      toast('Comprovante anexado', 'fa-paperclip')
+    } catch (erro) {
+      toast(mensagemDeErro(erro), 'fa-triangle-exclamation')
+    }
+  }
+
+  const removerComprovante = async () => {
+    const caminho = comprovante
+    setComprovante(null)
+    setNomeAnexo('')
+    // Arquivo enviado nesta sessao e ninguem aponta para ele: sai do bucket.
+    // O que ja estava salvo so some quando o lançamento for gravado sem ele.
+    if (caminho && caminho !== comprovanteSalvo) await apagarComprovante(caminho)
+  }
+
+  const verComprovante = async () => {
+    if (!comprovante) return
+    try {
+      await abrirComprovante(comprovante)
+    } catch (erro) {
+      toast(mensagemDeErro(erro), 'fa-triangle-exclamation')
+    }
   }
 
   const aoSalvar = async () => {
@@ -126,6 +186,20 @@ export function SheetLancamento({ aberto, aoFechar, lancamento, tipoInicial }: P
       toast('Cadastre um investimento antes de lançar um aporte', 'fa-triangle-exclamation')
       return
     }
+    if (marcarPago || jaPago) {
+      if (!paraISO(dataPaga)) {
+        toast('Informe a data do pagamento no formato DD/MM/AAAA', 'fa-triangle-exclamation')
+        return
+      }
+      if (!/^\d{2}:\d{2}$/.test(horaPaga)) {
+        toast('Informe a hora do pagamento no formato HH:MM', 'fa-triangle-exclamation')
+        return
+      }
+      if (valor == null || valor <= 0) {
+        toast('Informe o valor para marcar como já pago', 'fa-triangle-exclamation')
+        return
+      }
+    }
 
     const fonteEscolhida = fonte || fontes[0]?.[0] || null
 
@@ -143,18 +217,45 @@ export function SheetLancamento({ aberto, aoFechar, lancamento, tipoInicial }: P
       forma_ref: fonteEscolhida,
       dono,
       investimento_id: aporte ? investimentoId || investimentos[0]?.id || null : null,
+      observacoes: observacoes.trim() || null,
+      comprovante_url: comprovante,
     }
 
     try {
       if (editando) {
         await atualizar.mutateAsync({ id: lancamento.id!, dados })
+        // A data e a hora da baixa aparecem editáveis na tela, então precisam
+        // valer de verdade quando mudam.
+        if (jaPago) {
+          const baixa = lancamento.pagamento!
+          const novaData = paraISO(dataPaga)!
+          const novaHora = `${horaPaga}:00`
+          if (novaData !== baixa.data_pagamento || novaHora !== baixa.hora_pagamento) {
+            await corrigirBaixa.mutateAsync({
+              lancamentoId: lancamento.id!,
+              dataPagamento: novaData,
+              horaPagamento: novaHora,
+            })
+          }
+        }
+        if (comprovanteSalvo && comprovanteSalvo !== comprovante) {
+          await apagarComprovante(comprovanteSalvo)
+        }
         toast('Lançamento atualizado', 'fa-pen')
       } else {
-        await criar.mutateAsync({ ...dados, parcelas: parcelada ? Number(parcelas) : 1 })
+        await criar.mutateAsync({
+          ...dados,
+          parcelas: parcelada ? Number(parcelas) : 1,
+          pago: marcarPago,
+          pago_data: marcarPago ? paraISO(dataPaga) : null,
+          pago_hora: marcarPago ? `${horaPaga}:00` : null,
+        })
         toast(
           parcelada
-            ? `${parcelas} parcelas criadas, uma por mês`
-            : 'Lançamento criado',
+            ? `${parcelas} parcelas criadas, uma por mês${marcarPago ? `, a primeira já ${rotuloBaixa}` : ''}`
+            : marcarPago
+              ? `Lançamento criado e marcado como ${rotuloBaixa}`
+              : 'Lançamento criado',
           parcelada ? 'fa-layer-group' : 'fa-circle-check',
         )
       }
@@ -186,7 +287,7 @@ export function SheetLancamento({ aberto, aoFechar, lancamento, tipoInicial }: P
           <BotaoPill
             icone="fa-check"
             aoClicar={aoSalvar}
-            ocupado={criar.isPending || atualizar.isPending}
+            ocupado={criar.isPending || atualizar.isPending || corrigirBaixa.isPending}
           >
             Salvar lançamento
           </BotaoPill>
@@ -322,7 +423,39 @@ export function SheetLancamento({ aberto, aoFechar, lancamento, tipoInicial }: P
         </Campo>
       </div>
 
-      {jaPago ? (
+      {!editando ? (
+        <div
+          className="check-linha"
+          role="button"
+          tabIndex={0}
+          onClick={alternarPago}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              alternarPago()
+            }
+          }}
+        >
+          <CheckCircle
+            concluido={marcarPago}
+            rotulo={rotuloBaixa}
+            aoClicar={(e) => {
+              e.stopPropagation()
+              alternarPago()
+            }}
+          />
+          <div>
+            <b>Já foi {rotuloBaixa}</b>
+            <span>
+              {marcarPago
+                ? 'A data e a hora abaixo vão para o registro da baixa'
+                : `Marque para registrar o lançamento já ${rotuloBaixa}`}
+            </span>
+          </div>
+        </div>
+      ) : null}
+
+      {jaPago || marcarPago ? (
         <div className="field-row">
           <Campo
             id="fPagoData"
@@ -408,6 +541,64 @@ export function SheetLancamento({ aberto, aoFechar, lancamento, tipoInicial }: P
             </option>
           ))}
         </select>
+      </Campo>
+
+      <Campo id="fObs" rotulo="Observações" icone="fa-align-left">
+        <textarea
+          id="fObs"
+          rows={3}
+          value={observacoes}
+          onChange={(e) => setObservacoes(e.target.value)}
+          placeholder="Anotação livre sobre este lançamento"
+        />
+      </Campo>
+
+      <Campo rotulo="Comprovante" icone="fa-paperclip">
+        <div className={`anexo-box${comprovante ? ' tem' : ''}`}>
+          <i
+            className={`fa-solid ${comprovante ? 'fa-file-circle-check' : 'fa-paperclip'}`}
+            aria-hidden="true"
+          />
+          <span className="anexo-nome">
+            {enviarComprovante.isPending
+              ? 'Enviando...'
+              : comprovante
+                ? nomeAnexo || 'Comprovante anexado'
+                : 'Nenhum arquivo anexado'}
+          </span>
+          {comprovante ? (
+            <>
+              <button type="button" className="mini-btn" title="Ver comprovante" onClick={verComprovante}>
+                <i className="fa-solid fa-eye" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="mini-btn"
+                title="Remover comprovante"
+                onClick={removerComprovante}
+              >
+                <i className="fa-solid fa-xmark" aria-hidden="true" />
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="mini-btn"
+              title="Anexar comprovante"
+              onClick={() => arquivoRef.current?.click()}
+              disabled={enviarComprovante.isPending}
+            >
+              <i className="fa-solid fa-plus" aria-hidden="true" />
+            </button>
+          )}
+        </div>
+        <input
+          ref={arquivoRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,application/pdf"
+          hidden
+          onChange={escolherArquivo}
+        />
       </Campo>
 
       {parcelada && !editando && metodo === 'credito' ? (

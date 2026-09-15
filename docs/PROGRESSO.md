@@ -124,6 +124,21 @@ testado escrito na mensagem.
 
 ## Diario de sessoes
 
+### Sessao 2 · 15/09/2026 · Ajustes de uso real
+Seis pontos levantados pelo Rodolfo usando o app com dados de verdade.
+
+- **1. Check de "ja foi paga" no cadastro.** O formulario de lancamento ganhou um check que, ao ser ligado, revela data e hora ja preenchidas com o agora e editaveis. Isso grava a baixa junto com o lancamento, na mesma chamada. Nao afrouxa a regra do check da lista: la a data e a hora continuam sendo as do clique. Aqui e outra coisa, o registro retroativo de algo que ja aconteceu. Em parcelada, so a primeira parcela nasce paga.
+- **2a. Receita paga se chama "recebida".** O selo de status agora recebe o tipo do lancamento: despesa fica "pago", receita fica "recebido", aporte fica "aplicado", como no prototipo.
+- **2b e 6. Saldo da conta segue os pagamentos.** Gatilho `trg_saldo_da_conta` em `pagamentos`: receita recebida numa conta entra, despesa paga por pix, debito ou transferencia sai, aporte sai da conta e entra no investimento, fatura paga sai da conta e zera o cartao. Credito e dinheiro nao encostam em conta nenhuma, porque a referencia da baixa nao aponta para uma carteira tipo `conta`. Desfazer a baixa reverte, e excluir o lancamento tambem, pela cascata. A `fn_criar_ajuste` parou de mexer no saldo na mao: quem move e o pagamento espelho que ela ja criava, senao contaria duas vezes. O motivo continua validado antes de qualquer escrita.
+- **2c. Retroativo aplicado.** As quatro baixas que ja existiam foram somadas: o Nubank da RLiima foi de R$ 0,00 para R$ 10.146,55, que e 4.000 + 6.500 - 160 - 193,45. O "Saldo em contas" do resumo rapido parou de mostrar zero.
+- **3. Categoria tem tipo.** Enum `categoria_tipo` com despesa, receita e ambas. O cadastro de categoria ganhou o seletor "Serve para", e o formulario de lancamento so oferece as categorias do tipo certo. Salario e Pro-labore viraram receita; Ajuste de saldo, Investimentos e Empresa RLiima ficaram em ambas; o resto e despesa. Categoria de receita nao tem orcamento mensal, entao o campo e a barra somem dela.
+- **4. Multiplas categorias por lancamento:** descartado pelo Rodolfo, que preferiu manter uma categoria so.
+- **5. Observacoes e comprovante.** Colunas `observacoes` e `comprovante_url` em `lancamentos`, e o bucket privado `comprovantes` com politica por `casal_id`, teto de 5 MB, aceitando imagem e PDF. O que fica gravado e o caminho, nunca a URL assinada, que vence. Remover um anexo enviado na mesma sessao apaga o arquivo do bucket; trocar o anexo de um lancamento salvo apaga o antigo na hora de gravar.
+
+Testado: baixa que passa por conta entra e sai do saldo; desfazer devolve; excluir o lancamento pago devolve pela cascata; credito e dinheiro nao movem conta; aporte sai da conta e entra no investimento; fatura paga por conta zera o cartao e debita a conta, e desfazer reverte os dois; ajuste de entrada e de retirada move o saldo uma vez so; chamada posicional antiga de `fn_criar_lancamentos` continua valendo, e a nova grava observacoes aparadas, comprovante e a baixa na data informada. Conferido no navegador nos dois temas, sem erro de console. Linter de seguranca do Supabase segue so com o alerta de senha vazada, que e um botao do painel.
+
+Corrigido de quebra: `supabase/testes/fluxos_criticos.sql` usava variaveis plpgsql chamadas `saldo` e `usado`, iguais a colunas de `carteiras`. O Postgres recusa por ambiguidade, entao o arquivo nunca rodava do inicio ao fim. As variaveis viraram `v_base` e `v_lido` e as leituras passaram a qualificar a coluna.
+
 ### Sessao 1 · 14/09/2026 · Epico 0
 - Feito: leitura dos cinco documentos; copia do CLAUDE.md para a raiz e dos demais para `docs/`; `.gitignore`, `.env.example` e `.env.local` preenchido com a URL e a anon key do projeto ESTLIM-Finance (confirmado fora do versionamento); levantamento do ambiente (Node 24.14, pnpm 11.1.3, git 2.53, sem gh, sem CLI da Vercel e sem CLI do Supabase); confirmacao de que o banco esta vazio; entrevista dos blocos 1 a 5; primeiro commit local (`fdf6076`).
 - Pendente: push para o GitHub (B1), projeto e variaveis na Vercel (B2 e B3).
@@ -184,6 +199,8 @@ testado escrito na mensagem.
 | `fn_virada_mes` da especificacao tecnica descreve a media dos 3 ultimos pagos | Contradiz a decisao de 14/09/2026. Implementar com valor nulo e corrigir o texto do documento no Epico 8 |
 | Recharts instalado e nao usado | Os graficos seguem o desenho do prototipo. Remover a dependencia se ficar decidido que nunca vai entrar |
 | Relatorio anual consolidado fora do escopo | Suposicao S7, para validar depois |
+| `usado` do cartao continua manual | Somar a despesa no credito ao limite utilizado quebraria a fatura automatica em compra parcelada: 5x890 inflaria o `usado` em 4.450 de uma vez. Precisa de decisao sobre competencia antes de virar gatilho |
+| Anexo enviado e sheet fechada sem salvar deixa o arquivo no bucket | O botao de remover cobre o caso deliberado. Limpeza periodica ou varredura de orfaos resolve o resto |
 
 ## Ideias para versoes futuras
 

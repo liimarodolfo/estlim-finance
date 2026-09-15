@@ -15,7 +15,7 @@ declare
   uid uuid;
   id_conta uuid; id_cartao uuid; id_corretora uuid; id_investimento uuid;
   id_cat_dividas uuid; id_cat_fixas uuid; id_lanc uuid; id_fatura uuid;
-  saldo numeric; usado numeric; valor_inv numeric; st text;
+  v_base numeric; v_lido numeric; valor_inv numeric; st text;
   n int; datas text; resultado text; r record;
 begin
   select id into uid from auth.users where email = 'rodolfo@rliima.com';
@@ -49,19 +49,19 @@ begin
   raise notice 'OK 2a-e: cartao gerou fatura fixa variavel, debitando da conta, valor % no dia %', r.valor_exibido, r.dia_exibido;
 
   update carteiras set usado = 2750.40 where id = id_cartao;
-  select valor_exibido into usado from v_lancamentos where id = id_fatura;
-  if usado <> 2750.40 then raise exception 'FALHOU 2f: fatura nao acompanhou o usado, ficou %', usado; end if;
+  select valor_exibido into v_lido from v_lancamentos where id = id_fatura;
+  if v_lido <> 2750.40 then raise exception 'FALHOU 2f: fatura nao acompanhou o usado, ficou %', v_lido; end if;
   raise notice 'OK 2f: o valor da fatura acompanha o limite utilizado sozinho';
 
   insert into pagamentos (lancamento_id, data_pagamento, hora_pagamento, valor_pago)
   values (id_fatura, current_date, localtime, 2750.40);
-  select usado into usado from carteiras where id = id_cartao;
-  if usado <> 0 then raise exception 'FALHOU 2g: pagar a fatura nao zerou o limite, ficou %', usado; end if;
+  select c.usado into v_lido from carteiras c where c.id = id_cartao;
+  if v_lido <> 0 then raise exception 'FALHOU 2g: pagar a fatura nao zerou o limite, ficou %', v_lido; end if;
   raise notice 'OK 2g: pagar a fatura zerou o limite utilizado';
 
   delete from pagamentos where lancamento_id = id_fatura;
-  select usado into usado from carteiras where id = id_cartao;
-  if usado <> 2750.40 then raise exception 'FALHOU 2h: desfazer nao restaurou o limite, ficou %', usado; end if;
+  select c.usado into v_lido from carteiras c where c.id = id_cartao;
+  if v_lido <> 2750.40 then raise exception 'FALHOU 2h: desfazer nao restaurou o limite, ficou %', v_lido; end if;
   raise notice 'OK 2h: desfazer a baixa restaurou o limite pelo valor pago';
 
   -- ============================================================
@@ -118,19 +118,19 @@ begin
   -- 4. AJUSTE: sem motivo falha e nao altera saldo; com motivo
   --    altera saldo e cria o lancamento.
   -- ============================================================
-  select saldo into saldo from carteiras where id = id_conta;
+  select c.saldo into v_base from carteiras c where c.id = id_conta;
   begin
     perform fn_criar_ajuste(id_conta, 'entrada', 200, '   ');
     raise exception 'FALHOU 4a: aceitou ajuste sem motivo';
   exception when check_violation then
-    select saldo into usado from carteiras where id = id_conta;
-    if usado <> saldo then raise exception 'FALHOU 4b: o saldo mudou mesmo sem motivo'; end if;
+    select c.saldo into v_lido from carteiras c where c.id = id_conta;
+    if v_lido <> v_base then raise exception 'FALHOU 4b: o saldo mudou mesmo sem motivo'; end if;
     raise notice 'OK 4a-b: sem motivo nao ajusta e o saldo fica intacto';
   end;
 
   perform fn_criar_ajuste(id_conta, 'entrada', 250.50, 'nivelamento do balanco');
-  select saldo into usado from carteiras where id = id_conta;
-  if usado <> saldo + 250.50 then raise exception 'FALHOU 4c: saldo apos o ajuste ficou %', usado; end if;
+  select c.saldo into v_lido from carteiras c where c.id = id_conta;
+  if v_lido <> v_base + 250.50 then raise exception 'FALHOU 4c: saldo apos o ajuste ficou %', v_lido; end if;
 
   select l.status, l.tipo, c.nome as categoria, p.hora_pagamento is not null as tem_hora into r
     from ajustes a
@@ -203,6 +203,95 @@ begin
     values (casal,'despesa','TESTE fixo sem valor','fixo', current_date, 'Casal', id_cat_fixas);
     raise exception 'FALHOU 5b: aceitou lancamento de valor fixo sem valor';
   exception when check_violation then raise notice 'OK 5b: valor fixo sem valor recusado'; end;
+
+  -- ============================================================
+  -- 9. SALDO DA CONTA: toda baixa que passa por uma conta move o
+  --    saldo dela, e so ela. Credito e dinheiro nao encostam.
+  -- ============================================================
+  select c.saldo into v_base from carteiras c where c.id = id_conta;
+
+  -- 9a. receita recebida entra na conta
+  insert into lancamentos (casal_id, tipo, descricao, tipo_valor, valor_previsto, data_vencimento, dono, forma_metodo, forma_ref)
+  values (casal,'receita','TESTE receita na conta','fixo', 1200, current_date, 'Casal', 'pix', id_conta::text)
+  returning id into id_lanc;
+  insert into pagamentos (lancamento_id, data_pagamento, hora_pagamento, valor_pago, forma_metodo, forma_ref)
+  values (id_lanc, current_date, localtime, 1200, 'pix', id_conta::text);
+  select c.saldo into v_lido from carteiras c where c.id = id_conta;
+  if v_lido <> v_base + 1200 then raise exception 'FALHOU 9a: receita recebida nao entrou na conta, saldo ficou %', v_lido; end if;
+  raise notice 'OK 9a: receita recebida entrou no saldo da conta';
+
+  -- 9b. desfazer a baixa devolve
+  delete from pagamentos where lancamento_id = id_lanc;
+  select c.saldo into v_lido from carteiras c where c.id = id_conta;
+  if v_lido <> v_base then raise exception 'FALHOU 9b: desfazer a baixa nao devolveu o saldo, ficou %', v_lido; end if;
+  raise notice 'OK 9b: desfazer a baixa devolveu o saldo';
+
+  -- 9c. despesa paga por pix sai da conta
+  insert into lancamentos (casal_id, tipo, descricao, tipo_valor, valor_previsto, data_vencimento, dono, forma_metodo, forma_ref, categoria_id)
+  values (casal,'despesa','TESTE despesa na conta','fixo', 300, current_date, 'Casal', 'pix', id_conta::text, id_cat_fixas)
+  returning id into id_lanc;
+  insert into pagamentos (lancamento_id, data_pagamento, hora_pagamento, valor_pago, forma_metodo, forma_ref)
+  values (id_lanc, current_date, localtime, 300, 'pix', id_conta::text);
+  select c.saldo into v_lido from carteiras c where c.id = id_conta;
+  if v_lido <> v_base - 300 then raise exception 'FALHOU 9c: despesa paga nao saiu da conta, saldo ficou %', v_lido; end if;
+  raise notice 'OK 9c: despesa paga saiu do saldo da conta';
+
+  -- 9d. excluir o lancamento apaga a baixa em cascata e devolve o saldo
+  delete from lancamentos where id = id_lanc;
+  select c.saldo into v_lido from carteiras c where c.id = id_conta;
+  if v_lido <> v_base then raise exception 'FALHOU 9d: excluir o lancamento pago nao devolveu o saldo, ficou %', v_lido; end if;
+  raise notice 'OK 9d: excluir lancamento pago devolveu o saldo';
+
+  -- 9e. despesa no credito nao encosta em conta nenhuma
+  insert into lancamentos (casal_id, tipo, descricao, tipo_valor, valor_previsto, data_vencimento, dono, forma_metodo, forma_ref, categoria_id)
+  values (casal,'despesa','TESTE despesa no credito','fixo', 890, current_date, 'Casal', 'credito', id_cartao::text, id_cat_dividas)
+  returning id into id_lanc;
+  insert into pagamentos (lancamento_id, data_pagamento, hora_pagamento, valor_pago, forma_metodo, forma_ref)
+  values (id_lanc, current_date, localtime, 890, 'credito', id_cartao::text);
+  select c.saldo into v_lido from carteiras c where c.id = id_conta;
+  if v_lido <> v_base then raise exception 'FALHOU 9e: despesa no credito mexeu no saldo da conta, ficou %', v_lido; end if;
+  raise notice 'OK 9e: despesa no credito nao move saldo de conta';
+
+  -- 9f. dinheiro: a referencia e 'Rodolfo', nao e uuid. Nao pode estourar
+  --     nem mover saldo.
+  insert into lancamentos (casal_id, tipo, descricao, tipo_valor, valor_previsto, data_vencimento, dono, forma_metodo, forma_ref, categoria_id)
+  values (casal,'despesa','TESTE despesa em dinheiro','fixo', 40, current_date, 'Rodolfo', 'dinheiro', 'Rodolfo', id_cat_fixas)
+  returning id into id_lanc;
+  insert into pagamentos (lancamento_id, data_pagamento, hora_pagamento, valor_pago, forma_metodo, forma_ref)
+  values (id_lanc, current_date, localtime, 40, 'dinheiro', 'Rodolfo');
+  select c.saldo into v_lido from carteiras c where c.id = id_conta;
+  if v_lido <> v_base then raise exception 'FALHOU 9f: pagamento em dinheiro mexeu no saldo da conta, ficou %', v_lido; end if;
+  raise notice 'OK 9f: pagamento em dinheiro nao move saldo de conta';
+
+  -- 9g. aporte debitado da conta sai dela e entra no investimento
+  insert into lancamentos (casal_id, tipo, descricao, tipo_valor, valor_previsto, data_vencimento, dono, forma_metodo, forma_ref, investimento_id)
+  values (casal,'investimento','TESTE aporte da conta','fixo', 700, current_date, 'Casal', 'pix', id_conta::text, id_investimento)
+  returning id into id_lanc;
+  insert into pagamentos (lancamento_id, data_pagamento, hora_pagamento, valor_pago, forma_metodo, forma_ref)
+  values (id_lanc, current_date, localtime, 700, 'pix', id_conta::text);
+  select c.saldo into v_lido from carteiras c where c.id = id_conta;
+  select valor into valor_inv from investimentos where id = id_investimento;
+  if v_lido <> v_base - 700 then raise exception 'FALHOU 9g: aporte nao saiu da conta, saldo ficou %', v_lido; end if;
+  if valor_inv <> 1700 then raise exception 'FALHOU 9g: aporte nao entrou no investimento, ficou %', valor_inv; end if;
+  raise notice 'OK 9g: aporte saiu da conta e entrou no investimento';
+  delete from pagamentos where lancamento_id = id_lanc;
+
+  -- ============================================================
+  -- 10. CATEGORIA POR TIPO: receita e despesa escolhem de listas
+  --     diferentes, e 'ambas' aparece nas duas.
+  -- ============================================================
+  select count(*) into n from categorias
+   where casal_id = casal and nome = 'Salário' and tipo = 'receita';
+  if n <> 1 then raise exception 'FALHOU 10a: Salário nao esta marcada como categoria de receita'; end if;
+
+  select count(*) into n from categorias
+   where casal_id = casal and nome = 'Ajuste de saldo' and tipo = 'ambas';
+  if n <> 1 then raise exception 'FALHOU 10b: Ajuste de saldo precisa servir aos dois lados'; end if;
+
+  select count(*) into n from categorias
+   where casal_id = casal and tipo in ('receita','ambas') and nome not in ('Investimentos','Ajuste de saldo');
+  if n = 0 then raise exception 'FALHOU 10c: nenhuma categoria sobrou para o cadastro de receita'; end if;
+  raise notice 'OK 10: categorias separadas por tipo';
 
   -- ============================================================
   -- CATEGORIA DE SISTEMA E EXCLUSAO DE CARTEIRA

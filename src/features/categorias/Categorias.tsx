@@ -40,6 +40,9 @@ export default function Categorias() {
         {doOrcamento.map((c) => {
           const gasto = gastos[c.id] ?? 0
           const teto = c.orcamento_mensal
+          // Categoria de receita nao tem teto de gasto, entao a barra e a
+          // linha de orcamento nao dizem nada sobre ela.
+          const soReceita = c.tipo === 'receita'
           const estourou = teto > 0 && gasto > teto
           const pct = teto > 0 ? Math.min((gasto / teto) * 100, 100) : 0
           return (
@@ -67,17 +70,21 @@ export default function Categorias() {
                     />
                   ) : null}
                 </b>
-                <div className="cat-bar">
-                  <div
-                    className="cat-fill"
-                    style={{ background: estourou ? 'var(--expense)' : c.cor }}
-                    data-w={`${pct}%`}
-                  />
-                </div>
+                {soReceita ? null : (
+                  <div className="cat-bar">
+                    <div
+                      className="cat-fill"
+                      style={{ background: estourou ? 'var(--expense)' : c.cor }}
+                      data-w={`${pct}%`}
+                    />
+                  </div>
+                )}
                 <span style={estourou ? { color: 'var(--expense)', fontWeight: 600 } : undefined}>
-                  {teto > 0
-                    ? `${fmtMoeda(gasto)} de ${fmtMoeda(teto)}${estourou ? ' · acima do planejado' : ''}`
-                    : `${fmtMoeda(gasto)} · sem orçamento definido`}
+                  {soReceita
+                    ? 'Categoria de receita'
+                    : teto > 0
+                      ? `${fmtMoeda(gasto)} de ${fmtMoeda(teto)}${estourou ? ' · acima do planejado' : ''}`
+                      : `${fmtMoeda(gasto)} · sem orçamento definido`}
                 </span>
               </div>
               <i className="fa-solid fa-chevron-right row-chev" aria-hidden="true" />

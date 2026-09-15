@@ -249,7 +249,7 @@ export default function Dashboard() {
                   ) : (
                     <b>{fmtMoeda(l.valor_exibido)}</b>
                   )}
-                  <StatusBadge status={l.status!} />
+                  <StatusBadge status={l.status!} tipo={l.tipo} />
                 </div>
               </div>
             )

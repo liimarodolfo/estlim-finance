@@ -2,13 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { usePerfil } from '@/hooks/usePerfil'
 import { intervaloDoMes } from '@/lib/formatters'
-import type { Categoria } from '@/types/database'
+import type { Categoria, CategoriaTipo } from '@/types/database'
 import { comoErro } from '@/lib/erros'
 
 export type NovaCategoria = {
   nome: string
   icone: string
   cor: string
+  tipo: CategoriaTipo
   orcamento_mensal: number
 }
 

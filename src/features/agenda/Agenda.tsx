@@ -139,7 +139,7 @@ export default function Agenda() {
                         {fmtMoeda(l.pagamento?.valor_pago ?? l.valor_exibido ?? 0)}
                       </b>
                     )}
-                    <StatusBadge status={pago && aporte ? 'aplicado' : l.status!} />
+                    <StatusBadge status={l.status!} tipo={l.tipo} />
                   </div>
                 </div>
               )

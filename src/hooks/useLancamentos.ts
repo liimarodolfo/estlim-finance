@@ -28,7 +28,21 @@ export type DadosLancamento = {
   forma_ref: string | null
   dono: Dono
   investimento_id: string | null
+  observacoes: string | null
+  comprovante_url: string | null
+}
+
+/**
+ * O que só existe no cadastro: o número de parcelas e o check de "já foi
+ * paga/recebida", que grava a baixa junto. Nenhum desses é coluna de
+ * lancamentos, por isso ficam fora de DadosLancamento, que a edição reaproveita
+ * inteiro no update.
+ */
+export type NovoLancamento = DadosLancamento & {
   parcelas: number
+  pago: boolean
+  pago_data: string | null
+  pago_hora: string | null
 }
 
 /** Lançamentos do mês, já com o valor da fatura sincronizado pela view. */
@@ -73,7 +87,7 @@ function invalidarTudo(qc: ReturnType<typeof useQueryClient>) {
 export function useCriarLancamento() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (dados: DadosLancamento) => {
+    mutationFn: async (dados: NovoLancamento) => {
       const { error } = await supabase.rpc('fn_criar_lancamentos', {
         p_tipo: dados.tipo,
         p_descricao: dados.descricao,
@@ -89,6 +103,11 @@ export function useCriarLancamento() {
         p_dono: dados.dono,
         p_investimento_id: dados.investimento_id,
         p_parcelas: dados.parcelas,
+        p_observacoes: dados.observacoes,
+        p_comprovante_url: dados.comprovante_url,
+        p_pago: dados.pago,
+        p_pago_data: dados.pago_data,
+        p_pago_hora: dados.pago_hora,
       })
       if (error) throw comoErro(error)
     },
@@ -99,10 +118,8 @@ export function useCriarLancamento() {
 export function useAtualizarLancamento() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, dados }: { id: string; dados: Omit<DadosLancamento, 'parcelas'> }) => {
-      const { parcelas: _ignorado, ...resto } = { ...dados, parcelas: 1 }
-      void _ignorado
-      const { error } = await supabase.from('lancamentos').update(resto).eq('id', id)
+    mutationFn: async ({ id, dados }: { id: string; dados: DadosLancamento }) => {
+      const { error } = await supabase.from('lancamentos').update(dados).eq('id', id)
       if (error) throw comoErro(error)
     },
     onSuccess: () => invalidarTudo(qc),
@@ -163,6 +180,25 @@ export function useDarBaixa() {
         forma_ref: dados.formaRef,
         confirmado_por: auth.user?.id ?? null,
       })
+      if (error) throw comoErro(error)
+    },
+    onSuccess: () => invalidarTudo(qc),
+  })
+}
+
+/**
+ * Corrige a data e a hora de uma baixa que ja existe. A regra do check continua
+ * intacta: quem marca pelo check tem o instante do clique gravado. Isto aqui e
+ * so a correcao depois, na tela de edicao, de um registro errado.
+ */
+export function useCorrigirBaixa() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (dados: { lancamentoId: string; dataPagamento: string; horaPagamento: string }) => {
+      const { error } = await supabase
+        .from('pagamentos')
+        .update({ data_pagamento: dados.dataPagamento, hora_pagamento: dados.horaPagamento })
+        .eq('lancamento_id', dados.lancamentoId)
       if (error) throw comoErro(error)
     },
     onSuccess: () => invalidarTudo(qc),

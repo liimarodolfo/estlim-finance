@@ -126,7 +126,7 @@ export function LinhaLancamento({
             {sinal} {fmtMoeda(valorMostrado)}
           </b>
         )}
-        <StatusBadge status={pago && aporte ? 'aplicado' : l.status!} />
+        <StatusBadge status={l.status!} tipo={l.tipo} />
       </div>
 
       <div className="tx-actions">

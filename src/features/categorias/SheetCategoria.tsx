@@ -9,7 +9,7 @@ import { BotaoExcluir } from '@/ui/BotaoExcluir'
 import { CORES_CATEGORIA } from '@/lib/marcas'
 import { toast } from '@/store/useToasts'
 import { useExcluirCategoria, useSalvarCategoria } from '@/hooks/useCategorias'
-import type { Categoria } from '@/types/database'
+import type { Categoria, CategoriaTipo } from '@/types/database'
 import { mensagemDeErro } from '@/lib/erros'
 
 type Props = {
@@ -27,8 +27,11 @@ export function SheetCategoria({ aberto, aoFechar, categoria }: Props) {
   const [orcamento, setOrcamento] = useState<number | null>(categoria?.orcamento_mensal ?? null)
   const [cor, setCor] = useState(categoria?.cor ?? CORES_CATEGORIA[0])
   const [icone, setIcone] = useState(categoria?.icone ?? 'fa-tag')
+  const [tipo, setTipo] = useState<CategoriaTipo>(categoria?.tipo ?? 'despesa')
 
   const protegida = categoria?.protegida ?? false
+  // Orçamento é teto de gasto. Categoria que só recebe dinheiro não tem teto.
+  const temOrcamento = tipo !== 'receita'
 
   const aoSalvar = async () => {
     if (!nome.trim()) {
@@ -48,7 +51,8 @@ export function SheetCategoria({ aberto, aoFechar, categoria }: Props) {
           nome: nome.trim(),
           icone,
           cor,
-          orcamento_mensal: orcamento ?? 0,
+          tipo,
+          orcamento_mensal: temOrcamento ? (orcamento ?? 0) : 0,
         },
       })
       toast(
@@ -115,9 +119,24 @@ export function SheetCategoria({ aberto, aoFechar, categoria }: Props) {
         />
       </Campo>
 
-      <Campo id="cOrcamento" rotulo="Orçamento mensal (R$)" icone="fa-bullseye">
-        <InputMoeda id="cOrcamento" valor={orcamento} aoMudar={setOrcamento} />
+      <Campo id="cTipo" rotulo="Serve para" icone="fa-arrow-right-arrow-left">
+        <select
+          id="cTipo"
+          value={tipo}
+          onChange={(e) => setTipo(e.target.value as CategoriaTipo)}
+          disabled={protegida}
+        >
+          <option value="despesa">Despesa</option>
+          <option value="receita">Receita</option>
+          <option value="ambas">Despesa e receita</option>
+        </select>
       </Campo>
+
+      {temOrcamento ? (
+        <Campo id="cOrcamento" rotulo="Orçamento mensal (R$)" icone="fa-bullseye">
+          <InputMoeda id="cOrcamento" valor={orcamento} aoMudar={setOrcamento} />
+        </Campo>
+      ) : null}
 
       <Campo rotulo="Cor" icone="fa-palette">
         <SeletorCorSolida valor={cor} aoEscolher={setCor} />
@@ -134,7 +153,13 @@ export function SheetCategoria({ aberto, aoFechar, categoria }: Props) {
         </div>
         <div className="cat-info">
           <b>{nome.trim() || 'Nome da categoria'}</b>
-          <span>É assim que ela aparece nas listas e no gráfico</span>
+          <span>
+            {tipo === 'receita'
+              ? 'Aparece só no cadastro de receita'
+              : tipo === 'ambas'
+                ? 'Aparece na despesa e na receita'
+                : 'Aparece só no cadastro de despesa'}
+          </span>
         </div>
       </div>
     </Sheet>

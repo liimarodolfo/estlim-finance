@@ -183,6 +183,7 @@ export type Database = {
           nome: string
           orcamento_mensal: number
           protegida: boolean
+          tipo: Database['public']['Enums']['categoria_tipo']
         }
         Insert: {
           casal_id: string
@@ -192,6 +193,7 @@ export type Database = {
           nome: string
           orcamento_mensal?: number
           protegida?: boolean
+          tipo?: Database['public']['Enums']['categoria_tipo']
         }
         Update: {
           casal_id?: string
@@ -201,6 +203,7 @@ export type Database = {
           nome?: string
           orcamento_mensal?: number
           protegida?: boolean
+          tipo?: Database['public']['Enums']['categoria_tipo']
         }
         Relationships: []
       }
@@ -281,6 +284,7 @@ export type Database = {
           cartao_id: string | null
           casal_id: string
           categoria_id: string | null
+          comprovante_url: string | null
           criado_em: string
           criado_por: string | null
           data_emissao: string | null
@@ -293,6 +297,7 @@ export type Database = {
           id: string
           investimento_id: string | null
           natureza: Database['public']['Enums']['natureza_tipo']
+          observacoes: string | null
           pagar_a: string | null
           parcela_atual: number | null
           parcela_total: number | null
@@ -305,6 +310,7 @@ export type Database = {
           cartao_id?: string | null
           casal_id: string
           categoria_id?: string | null
+          comprovante_url?: string | null
           criado_em?: string
           criado_por?: string | null
           data_emissao?: string | null
@@ -317,6 +323,7 @@ export type Database = {
           id?: string
           investimento_id?: string | null
           natureza?: Database['public']['Enums']['natureza_tipo']
+          observacoes?: string | null
           pagar_a?: string | null
           parcela_atual?: number | null
           parcela_total?: number | null
@@ -329,6 +336,7 @@ export type Database = {
           cartao_id?: string | null
           casal_id?: string
           categoria_id?: string | null
+          comprovante_url?: string | null
           criado_em?: string
           criado_por?: string | null
           data_emissao?: string | null
@@ -341,6 +349,7 @@ export type Database = {
           id?: string
           investimento_id?: string | null
           natureza?: Database['public']['Enums']['natureza_tipo']
+          observacoes?: string | null
           pagar_a?: string | null
           parcela_atual?: number | null
           parcela_total?: number | null
@@ -421,6 +430,7 @@ export type Database = {
           cartao_id: string | null
           casal_id: string | null
           categoria_id: string | null
+          comprovante_url: string | null
           criado_em: string | null
           criado_por: string | null
           data_emissao: string | null
@@ -434,6 +444,7 @@ export type Database = {
           id: string | null
           investimento_id: string | null
           natureza: Database['public']['Enums']['natureza_tipo'] | null
+          observacoes: string | null
           pagar_a: string | null
           parcela_atual: number | null
           parcela_total: number | null
@@ -463,6 +474,11 @@ export type Database = {
           p_dono: Database['public']['Enums']['dono_tipo']
           p_investimento_id?: string | null
           p_parcelas?: number
+          p_observacoes?: string | null
+          p_comprovante_url?: string | null
+          p_pago?: boolean
+          p_pago_data?: string | null
+          p_pago_hora?: string | null
         }
         Returns: string
       }
@@ -495,6 +511,7 @@ export type Database = {
     Enums: {
       ajuste_tipo: 'entrada' | 'retirada'
       carteira_tipo: 'conta' | 'cartao' | 'dinheiro'
+      categoria_tipo: 'despesa' | 'receita' | 'ambas'
       dono_tipo: 'Rodolfo' | 'Thainy' | 'Casal' | 'RLiima'
       instituicao_tipo: 'banco' | 'corretora'
       invest_sub: 'ativo' | 'caixinha'
@@ -534,6 +551,7 @@ export type TipoCarteira = Enums<'carteira_tipo'>
 export type SubInvestimento = Enums<'invest_sub'>
 export type TipoInstituicao = Enums<'instituicao_tipo'>
 export type TipoAjuste = Enums<'ajuste_tipo'>
+export type CategoriaTipo = Enums<'categoria_tipo'>
 
 export type Carteira = Tables<'carteiras'>
 export type Categoria = Tables<'categorias'>
