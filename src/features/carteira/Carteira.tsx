@@ -8,6 +8,7 @@ import { Bandeira } from '@/ui/Bandeira'
 import { useReveal } from '@/ui/useReveal'
 import { fmtMoeda } from '@/lib/formatters'
 import { GRADIENTE_DONO, gradienteDaMarca } from '@/lib/marcas'
+import { useFiltros } from '@/store/useFiltros'
 import { useCarteiras } from '@/hooks/useCarteiras'
 import { useDivida } from '@/hooks/useDivida'
 import { SheetCarteira } from '@/features/carteira/SheetCarteira'
@@ -16,12 +17,13 @@ import { ExtratoDaSelecao } from '@/features/carteira/ExtratoDaSelecao'
 import { SheetAjuste } from '@/features/carteira/SheetAjuste'
 import type { Carteira as TipoCarteiraLinha, Dono, TipoCarteira } from '@/types/database'
 
-type Perfil = 'Geral' | 'Rodolfo' | 'Thainy' | 'RLiima'
+type Perfil = 'Geral' | 'Rodolfo' | 'Thainy' | 'Casal' | 'RLiima'
 
 const PERFIS: { id: Perfil; rotulo: string; icone: string }[] = [
   { id: 'Geral', rotulo: 'Carteira Geral', icone: 'fa-layer-group' },
   { id: 'Rodolfo', rotulo: 'Rodolfo', icone: 'fa-user' },
   { id: 'Thainy', rotulo: 'Thainy', icone: 'fa-user' },
+  { id: 'Casal', rotulo: 'Casal', icone: 'fa-user-group' },
   { id: 'RLiima', rotulo: 'RLiima', icone: 'fa-building' },
 ]
 
@@ -30,16 +32,20 @@ const dia = (n: number | null) => String(n ?? 0).padStart(2, '0')
 function tituloDoPerfil(perfil: Perfil) {
   if (perfil === 'Geral') return 'Carteira geral do casal e da RLiima'
   if (perfil === 'RLiima') return 'Carteira RLiima · Empresa (PJ)'
+  if (perfil === 'Casal') return 'Carteira do casal · conta conjunta'
   return `Carteira ${perfil}`
 }
 
 function subtituloDoPerfil(perfil: Perfil) {
   if (perfil === 'Geral') return 'Saldo somado das contas do casal e da RLiima (PJ)'
   if (perfil === 'RLiima') return 'Saldo das contas da empresa'
+  if (perfil === 'Casal') return 'Saldo das contas que são dos dois'
   return `Saldo das contas de ${perfil}`
 }
 
 export default function Carteira() {
+  const mes = useFiltros((e) => e.mes)
+  const ano = useFiltros((e) => e.ano)
   const { data: carteiras = [], isLoading } = useCarteiras()
   const [perfil, setPerfil] = useState<Perfil>('Geral')
   const [sheetAberto, setSheetAberto] = useState(false)
@@ -59,13 +65,14 @@ export default function Carteira() {
   const usadoTotal = cartoes.reduce((s, c) => s + c.usado, 0)
   const limiteLivre = cartoes.reduce((s, c) => s + c.limite, 0) - usadoTotal
 
-  // O card mostrava so a fatura em aberto, que e uma divida entre varias. Agora
-  // mostra tudo o que esta vinculado a esta carteira e ainda nao foi pago.
-  const { data: divida } = useDivida()
-  const dividaDoPerfil =
-    perfil === 'Geral' ? (divida?.total ?? 0) : (divida?.porDono[perfil] ?? 0)
+  const limiteTotal = cartoes.reduce((s, c) => s + c.limite, 0)
 
-  const donos: Dono[] = perfil === 'Geral' ? ['Rodolfo', 'Thainy', 'RLiima'] : [perfil]
+  // O que ainda falta pagar no mes que esta na barra de meses. A fatura conta
+  // pelo valor cheio, que e o que sai da conta, e nao pelo liquido.
+  const { data: divida } = useDivida(mes, ano)
+  const aPagarNoMes = perfil === 'Geral' ? (divida?.total ?? 0) : (divida?.porDono[perfil] ?? 0)
+
+  const donos: Dono[] = perfil === 'Geral' ? ['Rodolfo', 'Thainy', 'Casal', 'RLiima'] : [perfil]
 
   useReveal([carteiras, perfil])
 
@@ -87,19 +94,33 @@ export default function Carteira() {
         <div className="hero-label">{tituloDoPerfil(perfil)}</div>
         <NumeroAnimado valor={saldoTotal} className="hero-value" como="div" />
         <div className="hero-sub">{subtituloDoPerfil(perfil)}</div>
-        <div className="ws-row">
+        <div className="ws-row ws-quatro">
           <div className="ws-item">
-            <b>{fmtMoeda(dividaDoPerfil)}</b>
+            <b>{fmtMoeda(aPagarNoMes)}</b>
+            <span>
+              <i className="fa-solid fa-hourglass-half" aria-hidden="true" />
+              A pagar este mês
+            </span>
+          </div>
+          <div className="ws-item">
+            <b>{fmtMoeda(usadoTotal)}</b>
             <span>
               <i className="fa-solid fa-file-invoice-dollar" aria-hidden="true" />
-              Total a pagar
+              Faturas a pagar
+            </span>
+          </div>
+          <div className="ws-item">
+            <b>{fmtMoeda(limiteTotal)}</b>
+            <span>
+              <i className="fa-solid fa-credit-card" aria-hidden="true" />
+              Limite total
             </span>
           </div>
           <div className="ws-item">
             <b>{fmtMoeda(limiteLivre)}</b>
             <span>
               <i className="fa-solid fa-unlock" aria-hidden="true" />
-              Limite livre
+              Limite disponível
             </span>
           </div>
         </div>

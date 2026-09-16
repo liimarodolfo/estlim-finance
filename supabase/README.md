@@ -45,6 +45,7 @@ pnpm types:supabase
 | `0025_anon_key_no_gateway_do_push.sql` | O push para de depender do verify_jwt, que um deploy zera |
 | `0026_fatura_com_o_nome_do_dono.sql` | A fatura automatica passa a nascer como "Fatura <cartao> - <dono>" |
 | `0027_sem_casal_no_dono.sql` | Casal deixa de ser dono: o que era dele passa para a Thainy |
+| `0028_casal_volta_a_ser_dono.sql` | Decisao revista: Casal volta, e os 8 lancamentos dele voltam junto |
 
 A numeracao 0003, 0004 e 0005 estava reservada na especificacao tecnica para funcoes,
 triggers e cron. Como storage e o ajuste de seguranca entraram antes, a ordem do disco
