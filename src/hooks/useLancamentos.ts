@@ -82,6 +82,9 @@ function invalidarTudo(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ['investimentos'] })
   qc.invalidateQueries({ queryKey: ['gastos-por-categoria'] })
   qc.invalidateQueries({ queryKey: ['dashboard'] })
+  qc.invalidateQueries({ queryKey: ['divida-por-dono'] })
+  qc.invalidateQueries({ queryKey: ['extrato'] })
+  qc.invalidateQueries({ queryKey: ['relatorios'] })
 }
 
 export function useCriarLancamento() {

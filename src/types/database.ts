@@ -581,7 +581,7 @@ export type Database = {
       ajuste_tipo: 'entrada' | 'retirada'
       carteira_tipo: 'conta' | 'cartao' | 'dinheiro'
       categoria_tipo: 'despesa' | 'receita' | 'ambas'
-      dono_tipo: 'Rodolfo' | 'Thainy' | 'Casal' | 'RLiima'
+      dono_tipo: 'Rodolfo' | 'Thainy' | 'RLiima'
       instituicao_tipo: 'banco' | 'corretora'
       invest_sub: 'ativo' | 'caixinha'
       lanc_tipo: 'receita' | 'despesa' | 'investimento'

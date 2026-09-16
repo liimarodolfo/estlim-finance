@@ -712,3 +712,15 @@ body {
     height: 120px;
   }
 }
+/* A segunda fileira de chips (Realizado / Previsto) fica colada na primeira,
+   porque as duas escolhem o mesmo recorte: periodo e base. */
+.rel-base {
+  margin-top: -6px;
+}
+.rr-bloco small {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
