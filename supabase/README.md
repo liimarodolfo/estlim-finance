@@ -43,6 +43,7 @@ pnpm types:supabase
 | `0023_relogio_de_brasilia.sql` | Todas as funcoes passam a usar o horario de Brasilia, e o cron e reescrito pelo que vale aqui |
 | `0024_avisos_entre_o_casal.sql` | Gatilhos que avisam o outro quando alguem lanca ou da baixa |
 | `0025_anon_key_no_gateway_do_push.sql` | O push para de depender do verify_jwt, que um deploy zera |
+| `0026_fatura_com_o_nome_do_dono.sql` | A fatura automatica passa a nascer como "Fatura <cartao> - <dono>" |
 
 A numeracao 0003, 0004 e 0005 estava reservada na especificacao tecnica para funcoes,
 triggers e cron. Como storage e o ajuste de seguranca entraram antes, a ordem do disco
