@@ -12,6 +12,8 @@ import { useInvestimentos } from '@/hooks/useInvestimentos'
 import { useExcluirLancamento, useLancamentos, type LancamentoComBaixa } from '@/hooks/useLancamentos'
 import { useFluxoDeBaixa } from '@/hooks/useFluxoDeBaixa'
 import { LinhaLancamento } from '@/features/lancamentos/LinhaLancamento'
+import { PainelFiltros } from '@/features/lancamentos/PainelFiltros'
+import { aplicarRefino, refinoVazio, type Refino } from '@/features/lancamentos/refino'
 import { SheetLancamento } from '@/features/lancamentos/SheetLancamento'
 import type { LancTipo } from '@/types/database'
 
@@ -41,6 +43,7 @@ export default function Lancamentos() {
   const excluir = useExcluirLancamento()
   const { marcar, abrirValor, recemPago, sheets } = useFluxoDeBaixa()
 
+  const [refino, setRefino] = useState<Refino>(refinoVazio)
   const [sheetAberto, setSheetAberto] = useState(false)
   const [emFoco, setEmFoco] = useState<LancamentoComBaixa | null>(null)
   const [tipoNovo] = useState<LancTipo>('despesa')
@@ -68,8 +71,10 @@ export default function Lancamentos() {
     if (filtro === 'parcelada') lista = lista.filter((l) => l.natureza === 'parcelada')
     if (filtro === 'pendente') lista = lista.filter((l) => l.status !== 'pago')
     if (filtro === 'pago') lista = lista.filter((l) => l.status === 'pago')
-    return lista
-  }, [lancamentos, filtro])
+    // O refino entra depois dos chips: eles escolhem o recorte, ele afina
+    // dentro dele. A ordenacao fica por ultimo, para valer sobre o que sobrou.
+    return aplicarRefino(lista, refino)
+  }, [lancamentos, filtro, refino])
 
   const grupos = useMemo(() => {
     if (filtro !== 'todos') return null
@@ -156,6 +161,13 @@ export default function Lancamentos() {
           </Chip>
         ))}
       </div>
+
+      <PainelFiltros
+        valor={refino}
+        aoMudar={setRefino}
+        categorias={categorias}
+        lancamentos={lancamentos}
+      />
 
       <div id="txList">
         {grupos
