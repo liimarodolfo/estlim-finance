@@ -4,7 +4,7 @@ import { Chip } from '@/ui/Chip'
 import { fmtMoeda } from '@/lib/formatters'
 import { mensagemDeErro } from '@/lib/erros'
 import { toast } from '@/store/useToasts'
-import { useFiltros } from '@/store/useFiltros'
+import { useFiltros, type FiltroLista as Filtro } from '@/store/useFiltros'
 import { useNovoLancamento } from '@/store/useNovoLancamento'
 import { useCarteiras } from '@/hooks/useCarteiras'
 import { useCategorias } from '@/hooks/useCategorias'
@@ -14,10 +14,6 @@ import { useFluxoDeBaixa } from '@/hooks/useFluxoDeBaixa'
 import { LinhaLancamento } from '@/features/lancamentos/LinhaLancamento'
 import { SheetLancamento } from '@/features/lancamentos/SheetLancamento'
 import type { LancTipo } from '@/types/database'
-
-type Filtro =
-  | 'todos' | 'receita' | 'despesa' | 'investimento'
-  | 'fixa' | 'parcelada' | 'pendente' | 'pago'
 
 const FILTROS: { id: Filtro; rotulo: string; icone: string }[] = [
   { id: 'todos', rotulo: 'Todos', icone: 'fa-list' },
@@ -33,6 +29,10 @@ const FILTROS: { id: Filtro; rotulo: string; icone: string }[] = [
 export default function Lancamentos() {
   const mes = useFiltros((e) => e.mes)
   const ano = useFiltros((e) => e.ano)
+  const idEmFoco = useFiltros((e) => e.idEmFoco)
+  const limparFoco = useFiltros((e) => e.limparFoco)
+  const filtro = useFiltros((e) => e.filtro)
+  const setFiltro = useFiltros((e) => e.setFiltro)
   const { data: lancamentos = [], isLoading } = useLancamentos(mes, ano)
   const { data: categorias = [] } = useCategorias()
   const { data: carteiras = [] } = useCarteiras()
@@ -41,7 +41,6 @@ export default function Lancamentos() {
   const excluir = useExcluirLancamento()
   const { marcar, abrirValor, recemPago, sheets } = useFluxoDeBaixa()
 
-  const [filtro, setFiltro] = useState<Filtro>('todos')
   const [sheetAberto, setSheetAberto] = useState(false)
   const [emFoco, setEmFoco] = useState<LancamentoComBaixa | null>(null)
   const [tipoNovo] = useState<LancTipo>('despesa')
@@ -101,6 +100,23 @@ export default function Lancamentos() {
       .map((g) => ({ ...g, total: g.caixa ? somaCaixa(g.itens) : soma(g.itens) }))
   }, [filtrados, filtro])
 
+  // A busca ja chegou aqui com o filtro em Todos, senao a linha achada podia
+  // estar fora do recorte em uso. Aqui so falta rolar ate ela e apagar o
+  // destaque depois do flash.
+  useEffect(() => {
+    if (!idEmFoco) return
+    const achar = window.setTimeout(() => {
+      document
+        .querySelector(`[data-lanc="${idEmFoco}"]`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 120)
+    const apagar = window.setTimeout(limparFoco, 2000)
+    return () => {
+      window.clearTimeout(achar)
+      window.clearTimeout(apagar)
+    }
+  }, [idEmFoco, limparFoco])
+
   const aoExcluir = async (l: LancamentoComBaixa) => {
     try {
       await excluir.mutateAsync(l.id!)
@@ -123,7 +139,7 @@ export default function Lancamentos() {
       categoria={categoriaDe(l)}
       carteiras={carteiras}
       investimento={investimentoDe(l)}
-      destacado={recemPago === l.id}
+      destacado={recemPago === l.id || idEmFoco === l.id}
       aoAbrir={() => abrirEdicao(l)}
       aoMarcar={(e) => marcar(l, e)}
       aoExcluir={() => aoExcluir(l)}
