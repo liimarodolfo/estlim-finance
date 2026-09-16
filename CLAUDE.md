@@ -68,6 +68,7 @@ Estão detalhadas na seção 4 do documento mestre. As cinco mais sensíveis:
 5. Lançamentos variáveis podem existir sem valor, com notificação de "Adicionar valor" até serem preenchidos.
 6. Existem três tipos de lançamento: Despesa, Receita e Investimento. O aporte soma ao investimento de destino quando marcado como aplicado, e desfazer subtrai.
 7. Investimento em banco sempre referencia uma conta já cadastrada na Carteira; em corretora, referencia uma corretora cadastrada pelo usuário, com logo opcional.
+8. Notificação de evento avisa o outro do casal, nunca quem fez a ação: ela existe para um ficar sabendo do que o outro mexeu. Não avisam a escrita do sistema (sem usuário logado), a parcela de número 2 em diante, e a baixa que nasce junto do lançamento, porque nos três casos o aviso seria repetição ou ruído.
 
 ## Fluxo de trabalho
 

@@ -38,9 +38,10 @@ export function Notificacoes() {
       <TituloSecao icone="fa-bell">Notificações no aparelho</TituloSecao>
       <div className="card">
         <div className="bl-formula">
-          Avisamos quando uma conta vence amanhã, quando vence hoje, quando alguma atrasa e quando a
-          fatura do cartão fecha esperando o valor final. Uma vez por dia, de manhã. O sino aqui
-          dentro continua mostrando tudo de qualquer jeito.
+          Uma vez por dia, de manhã, avisamos o que vence amanhã, o que vence hoje, o que atrasou e
+          qual fatura fechou esperando o valor final. E na hora em que acontece, quando o outro lança
+          uma despesa, registra uma receita ou dá baixa em alguma coisa. Do que você mesmo fez não
+          chega aviso. O sino aqui dentro continua mostrando tudo de qualquer jeito.
         </div>
 
         {isLoading ? (

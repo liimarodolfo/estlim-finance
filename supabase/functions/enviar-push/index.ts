@@ -1,9 +1,20 @@
-// ESTLIM · envia as notificacoes do dia para os aparelhos assinados.
+// ESTLIM · envia as notificacoes para os aparelhos assinados.
 //
-// Quem chama e o pg_cron, uma vez por dia. A verificacao de JWT do painel fica
-// desligada de proposito: a funcao faz a propria conferencia contra um token
-// que vive no Vault, o que e mais estrito do que aceitar qualquer JWT do
-// projeto, inclusive a anon key que qualquer um le no bundle.
+// Ela atende tres chamadas. Sem corpo, monta os avisos do dia, e quem chama e o
+// pg_cron uma vez por dia. Com para_perfis, entrega uma mensagem pronta que um
+// gatilho do banco escreveu, e e assim que um do casal fica sabendo do que o
+// outro acabou de lancar. Com teste_para, manda um aviso avulso, para conferir
+// o caminho ponta a ponta sem esperar o relogio.
+//
+// SOBRE A AUTENTICACAO
+// Quem chama manda duas coisas. No Authorization vai a anon key, que e publica
+// e existe so para o gateway do Supabase deixar a chamada passar. A prova de
+// verdade vai no x-token-push, conferida aqui contra um segredo do Vault: um
+// JWT valido do projeto nao basta, porque qualquer um le a anon key no bundle.
+//
+// O header proprio tambem tira a funcao da dependencia do verify_jwt, que e uma
+// configuracao do painel e volta ao padrao a cada deploy. Ja derrubou o push uma
+// vez, em silencio.
 //
 // A chave privada VAPID tambem vem do Vault, nunca do codigo.
 import webpush from 'npm:web-push@3.6.7'
@@ -37,13 +48,16 @@ const json = (corpo: unknown, status = 200) =>
 // \uXXXX. O JSON.parse do service worker devolve o caractere certo do outro
 // lado, e nao sobra ambiguidade no meio do caminho.
 const emAscii = (texto: string) =>
-  texto.replace(/[-￿]/g, (c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'))
+  texto.replace(/[\u0080-\uFFFF]/g, (c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'))
 
 Deno.serve(async (req: Request) => {
   const banco = createClient(URL_SUPABASE, CHAVE_SERVICO)
 
   const { data: token } = await banco.rpc('fn_token_cron_push')
-  if (!token || req.headers.get('Authorization') !== `Bearer ${token}`) {
+  const provou =
+    req.headers.get('x-token-push') ??
+    req.headers.get('Authorization')?.replace(/^Bearer /, '')
+  if (!token || provou !== token) {
     return json({ erro: 'Não autorizado.' }, 401)
   }
 
@@ -54,23 +68,25 @@ Deno.serve(async (req: Request) => {
 
   webpush.setVapidDetails('mailto:rodolfo@rliima.com', VAPID_PUBLICA, chave as string)
 
-  // Com teste_para no corpo, manda um aviso unico para os aparelhos daquele
-  // perfil. Sem corpo, valem os avisos do dia que o banco monta.
+  // Com perfis no corpo, a mensagem ja vem escrita e so precisa ser entregue.
+  // Sem corpo, valem os avisos do dia que o banco monta.
   let avisos: Aviso[] = []
   const texto = await req.text()
   const pedido = texto ? JSON.parse(texto) : {}
 
-  if (pedido?.teste_para) {
+  const perfis: string[] = pedido?.para_perfis ?? (pedido?.teste_para ? [pedido.teste_para] : [])
+
+  if (perfis.length) {
     const { data } = await banco
       .from('assinaturas_push')
       .select('endpoint, p256dh, auth')
-      .eq('perfil_id', pedido.teste_para)
+      .in('perfil_id', perfis)
     avisos = (data ?? []).map((a: { endpoint: string; p256dh: string; auth: string }) => ({
       ...a,
       titulo: pedido.titulo ?? 'Notificação de teste',
       corpo: pedido.corpo ?? 'Se você está lendo isto, o push está funcionando.',
       tag: pedido.tag ?? 'teste',
-      caminho: '/',
+      caminho: pedido.caminho ?? '/',
     }))
   } else {
     const { data, error } = await banco.rpc('fn_avisos_para_push')
