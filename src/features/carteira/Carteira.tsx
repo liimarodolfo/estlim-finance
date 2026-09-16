@@ -10,6 +10,7 @@ import { fmtMoeda } from '@/lib/formatters'
 import { GRADIENTE_DONO, gradienteDaMarca } from '@/lib/marcas'
 import { useCarteiras } from '@/hooks/useCarteiras'
 import { SheetCarteira } from '@/features/carteira/SheetCarteira'
+import { SheetExtrato } from '@/features/carteira/SheetExtrato'
 import { SheetAjuste } from '@/features/carteira/SheetAjuste'
 import type { Carteira as TipoCarteiraLinha, Dono, TipoCarteira } from '@/types/database'
 
@@ -43,6 +44,7 @@ export default function Carteira() {
   const [ajusteAberto, setAjusteAberto] = useState(false)
   const [emEdicao, setEmEdicao] = useState<TipoCarteiraLinha | null>(null)
   const [tipoNovo, setTipoNovo] = useState<TipoCarteira>('conta')
+  const [extratoDe, setExtratoDe] = useState<TipoCarteiraLinha | null>(null)
 
   const doPerfil = useMemo(
     () => carteiras.filter((c) => perfil === 'Geral' || c.dono === perfil),
@@ -145,6 +147,18 @@ export default function Carteira() {
                       <span>{c.descricao ?? c.banco_nome ?? ''}</span>
                     </div>
                     <span className="b-val">{fmtMoeda(c.saldo)}</span>
+                    <button
+                      type="button"
+                      className="b-extrato"
+                      title={`Extrato de ${c.nome}`}
+                      aria-label={`Extrato de ${c.nome}`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setExtratoDe(c)
+                      }}
+                    >
+                      <i className="fa-solid fa-receipt" aria-hidden="true" />
+                    </button>
                     <i className="fa-solid fa-chevron-right row-chev" aria-hidden="true" />
                   </div>
                 ))}
@@ -270,6 +284,12 @@ export default function Carteira() {
         carteira={emEdicao}
         tipoInicial={tipoNovo}
         donoInicial={perfil === 'Geral' ? 'Rodolfo' : perfil}
+      />
+
+      <SheetExtrato
+        aberto={extratoDe !== null}
+        aoFechar={() => setExtratoDe(null)}
+        carteira={extratoDe}
       />
 
       <SheetAjuste

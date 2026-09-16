@@ -358,3 +358,123 @@ body {
     gap: 10px;
   }
 }
+
+/* ==========================================================================
+   EXTRATO DA CONTA
+   O protótipo não tem extrato. O botão entra na linha do banco, ao lado do
+   saldo, e para o clique não subir para a linha, que abre a edição.
+   ========================================================================== */
+.b-extrato {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  margin-left: 8px;
+  transition: color 0.2s, background 0.2s;
+}
+.b-extrato:hover {
+  color: var(--accent);
+  background: var(--surface);
+}
+.ex-resumo {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.ex-bloco {
+  flex: 1;
+  min-width: 0;
+  padding: 12px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  text-align: center;
+}
+.ex-bloco span {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.ex-bloco b {
+  display: block;
+  margin-top: 4px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+.ex-linha {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.ex-linha:last-child {
+  border-bottom: none;
+}
+.ex-seta {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+}
+.ex-info {
+  flex: 1;
+  min-width: 0;
+}
+.ex-info b {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ex-info span {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.ex-valor {
+  flex: 0 0 auto;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.ex-saldo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 10px 0 18px;
+  padding: 13px 16px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+.ex-saldo span {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.ex-saldo b {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
