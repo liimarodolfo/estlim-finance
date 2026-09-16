@@ -14,7 +14,7 @@ import {
 import type { Dono, Investimento, SubInvestimento, TipoInstituicao } from '@/types/database'
 import { mensagemDeErro } from '@/lib/erros'
 
-const DONOS: Dono[] = ['Rodolfo', 'Thainy', 'RLiima']
+const DONOS: Dono[] = ['Rodolfo', 'Thainy', 'Casal', 'RLiima']
 
 type Props = {
   aberto: boolean

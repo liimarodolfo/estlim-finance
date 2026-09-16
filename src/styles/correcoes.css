@@ -724,3 +724,16 @@ body {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
+
+/* O card da Carteira passou de dois para quatro indicadores. Em duas colunas
+   no celular e quatro no desktop, para o rotulo nao quebrar em duas linhas. */
+.ws-row.ws-quatro {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+@media (min-width: 720px) {
+  .ws-row.ws-quatro {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
