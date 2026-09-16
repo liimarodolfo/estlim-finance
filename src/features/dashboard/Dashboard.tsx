@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Tela } from '@/ui/Tela'
 import { TituloSecao } from '@/ui/TituloSecao'
@@ -21,6 +21,9 @@ import { Barras } from '@/features/dashboard/Barras'
 import { Balanco } from '@/features/dashboard/Balanco'
 import { SheetAjuste } from '@/features/carteira/SheetAjuste'
 
+/** Uma linha do detalhamento: de onde vem a parcela daquele total. */
+type Parcela = { chave: string; nome: string; apoio?: string; valor: number }
+
 function Indicador({
   icone,
   cor,
@@ -28,6 +31,7 @@ function Indicador({
   valor,
   apoio,
   direcao,
+  detalhe,
 }: {
   icone: string
   cor: string
@@ -35,11 +39,34 @@ function Indicador({
   valor: number
   apoio: string
   direcao?: 'up' | 'down'
+  /** Abre um balão dizendo de onde sai o total. Sem isso, o card nao tem botao. */
+  detalhe?: Parcela[]
 }) {
   const corApoio =
     direcao === 'up' ? 'var(--income)' : direcao === 'down' ? 'var(--expense)' : 'var(--muted)'
+  const [aberto, setAberto] = useState(false)
+  const caixa = useRef<HTMLDivElement>(null)
+
+  // Fecha ao tocar fora e no Esc. Sem isso o balao ficaria presente no celular,
+  // onde nao existe sair com o mouse.
+  useEffect(() => {
+    if (!aberto) return
+    const fora = (e: MouseEvent) => {
+      if (!caixa.current?.contains(e.target as Node)) setAberto(false)
+    }
+    const tecla = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAberto(false)
+    }
+    document.addEventListener('mousedown', fora)
+    document.addEventListener('keydown', tecla)
+    return () => {
+      document.removeEventListener('mousedown', fora)
+      document.removeEventListener('keydown', tecla)
+    }
+  }, [aberto])
+
   return (
-    <div className="card stat-card">
+    <div className="card stat-card" ref={caixa}>
       <span className="sc-ico" style={{ background: `${cor}1e`, color: cor }}>
         <i className={`fa-solid ${icone}`} aria-hidden="true" />
       </span>
@@ -55,6 +82,45 @@ function Indicador({
           </i>
         </div>
       </div>
+
+      {detalhe ? (
+        <>
+          <button
+            type="button"
+            className="sc-abrir"
+            aria-expanded={aberto}
+            title={`Onde esta: ${rotulo}`}
+            aria-label={`Onde esta: ${rotulo}`}
+            onClick={() => setAberto((a) => !a)}
+          >
+            <i className="fa-solid fa-circle-info" aria-hidden="true" />
+          </button>
+
+          {aberto ? (
+            <div className="sc-detalhe" role="dialog" aria-label={`Detalhe de ${rotulo}`}>
+              {detalhe.length === 0 ? (
+                <div className="sc-vazio">Nada por aqui ainda.</div>
+              ) : (
+                detalhe.map((d) => (
+                  <div key={d.chave} className="sc-item">
+                    <div className="sc-item-nome">
+                      <b>{d.nome}</b>
+                      {d.apoio ? <span>{d.apoio}</span> : null}
+                    </div>
+                    <b className="sc-item-valor">{fmtMoeda(d.valor)}</b>
+                  </div>
+                ))
+              )}
+              <div className="sc-item sc-total">
+                <div className="sc-item-nome">
+                  <b>Total</b>
+                </div>
+                <b className="sc-item-valor">{fmtMoeda(valor)}</b>
+              </div>
+            </div>
+          ) : null}
+        </>
+      ) : null}
     </div>
   )
 }
@@ -96,7 +162,19 @@ export default function Dashboard() {
   // na Carteira, ou alguma compra foi lançada no cartão errado.
   const faturasEstouradas = lancamentos.filter((l) => l.fatura_estourada)
 
-  const saldoContas = carteiras.filter((c) => c.tipo === 'conta').reduce((s, c) => s + c.saldo, 0)
+  const contas = useMemo(() => carteiras.filter((c) => c.tipo === 'conta'), [carteiras])
+  const saldoContas = contas.reduce((s, c) => s + c.saldo, 0)
+
+  // O total sozinho nao diz onde o dinheiro esta, e com contas de donos
+  // diferentes isso muda a leitura: o mesmo saldo pode estar todo na PJ. Maior
+  // primeiro, porque a pergunta e sempre "onde esta a maior parte".
+  const detalheDasContas = useMemo(
+    () =>
+      [...contas]
+        .sort((a, b) => b.saldo - a.saldo)
+        .map((c) => ({ chave: c.id, nome: c.nome, apoio: c.dono, valor: c.saldo })),
+    [contas],
+  )
   const cartoes = carteiras.filter((c) => c.tipo === 'cartao')
   const usadoCartoes = cartoes.reduce((s, c) => s + c.usado, 0)
   const limiteTotal = cartoes.reduce((s, c) => s + c.limite, 0)
@@ -164,7 +242,7 @@ export default function Dashboard() {
         Resumo rápido
       </TituloSecao>
       <div className="grid2" id="quickStats">
-        <Indicador icone="fa-building-columns" cor="var(--income)" rotulo="Saldo em contas" valor={saldoContas} apoio={`${carteiras.filter((c) => c.tipo === 'conta').length} conta${carteiras.filter((c) => c.tipo === 'conta').length === 1 ? '' : 's'}`} />
+        <Indicador icone="fa-building-columns" cor="var(--income)" rotulo="Saldo em contas" valor={saldoContas} apoio={`${contas.length} conta${contas.length === 1 ? '' : 's'}`} detalhe={detalheDasContas} />
         <Indicador icone="fa-hourglass-half" cor="var(--warn)" rotulo="A pagar no mês" valor={somaCaixa(pendentes)} apoio={`${pendentes.length} pendência${pendentes.length === 1 ? '' : 's'}`} />
         <Indicador icone="fa-credit-card" cor="var(--expense)" rotulo="Usado nos cartões" valor={usadoCartoes} apoio={limiteTotal ? `${Math.round((usadoCartoes / limiteTotal) * 100)}% do limite` : 'sem cartão'} />
         <Indicador icone="fa-hand-holding-dollar" cor="var(--income)" rotulo="A receber no mês" valor={somaPrevista(aReceber)} apoio={`${aReceber.length} pendente${aReceber.length === 1 ? '' : 's'}`} />

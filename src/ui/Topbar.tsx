@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Logo } from '@/ui/Logo'
 import { MesPills } from '@/ui/MesPills'
 import { PainelNotificacoes } from '@/ui/PainelNotificacoes'
+import { SheetBusca } from '@/features/lancamentos/SheetBusca'
 import { SheetValor } from '@/features/lancamentos/SheetValor'
 import { useTema } from '@/store/useTema'
 import { usePerfil } from '@/hooks/usePerfil'
@@ -23,6 +24,7 @@ export function Topbar() {
   const [painelAberto, setPainelAberto] = useState(false)
   const [lidas, setLidas] = useState(false)
   const [valorAberto, setValorAberto] = useState(false)
+  const [buscaAberta, setBuscaAberta] = useState(false)
   const [emFoco, setEmFoco] = useState<LancamentoComBaixa | null>(null)
 
   // O dot volta quando surge notificação nova depois de aberto o painel.
@@ -49,6 +51,15 @@ export function Topbar() {
             <span className="logo-text">ESTLIM</span>
           </div>
           <div className="top-actions">
+            <button
+              type="button"
+              className="icon-btn"
+              title="Buscar lançamento"
+              aria-label="Buscar lançamento"
+              onClick={() => setBuscaAberta(true)}
+            >
+              <i className="fa-solid fa-magnifying-glass" />
+            </button>
             <button
               type="button"
               className="icon-btn"
@@ -86,6 +97,8 @@ export function Topbar() {
         </div>
         <MesPills />
       </header>
+
+      <SheetBusca aberto={buscaAberta} aoFechar={() => setBuscaAberta(false)} />
 
       <PainelNotificacoes
         aberto={painelAberto}

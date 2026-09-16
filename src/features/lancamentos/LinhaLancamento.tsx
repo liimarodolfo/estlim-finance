@@ -98,6 +98,7 @@ export function LinhaLancamento({
     <div
       className={`tx${destacado ? ' paid-flash' : ''}`}
       style={{ animationDelay: `${indice * 35}ms` }}
+      data-lanc={l.id ?? undefined}
       role="button"
       tabIndex={0}
       onClick={aoAbrir}

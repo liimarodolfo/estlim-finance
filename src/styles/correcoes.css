@@ -126,3 +126,235 @@ body {
   background: var(--surface);
   border-radius: var(--r-md);
 }
+
+/* ==========================================================================
+   BUSCA
+   O protótipo não tem busca, então estas são as únicas regras novas dela. O
+   item de resultado reaproveita .tx, e só tira o que não existe aqui: não há
+   check para marcar nem botão de excluir, então a linha começa no ícone.
+   ========================================================================== */
+.busca-item {
+  padding-left: 2px;
+  cursor: pointer;
+}
+.busca-item:first-of-type {
+  border-top: 1px solid var(--hairline-soft);
+}
+.busca-conta {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+  margin: 2px 0 4px;
+}
+/* Os chips somem no mobile pela regra do protótipo, e aqui o resultado já não
+   os tem. O que importa no resultado é o mês, e ele vive no subtítulo. */
+.busca-item .tx-info span {
+  white-space: normal;
+}
+
+/* ==========================================================================
+   DETALHE DO INDICADOR
+   O protótipo não prevê detalhamento nos cards do Resumo rápido. O total
+   sozinho não responde "onde está esse dinheiro", que com contas de donos
+   diferentes é a primeira pergunta de quem olha.
+   ========================================================================== */
+.stat-card {
+  position: relative;
+}
+.sc-abrir {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+.sc-abrir:hover {
+  color: var(--ink);
+  background: var(--surface);
+}
+.sc-detalhe {
+  position: absolute;
+  top: calc(100% - 6px);
+  left: 10px;
+  right: 10px;
+  z-index: 30;
+  background: var(--canvas);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.14);
+  padding: 8px 12px;
+}
+[data-theme='dark'] .sc-detalhe {
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+.sc-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.sc-item:last-child {
+  border-bottom: none;
+}
+.sc-item-nome b {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+.sc-item-nome span {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+.sc-item-valor {
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.sc-total {
+  border-top: 1px solid var(--hairline);
+  margin-top: 2px;
+}
+.sc-vazio {
+  padding: 10px 0;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ==========================================================================
+   PAINEL DE FILTROS DA LISTA
+   Não existe no protótipo. Nasce recolhido, mostrando só a busca, porque os
+   quatro seletores abertos empurrariam a lista para fora da tela no celular.
+   ========================================================================== */
+.painel-filtros {
+  margin: 0 0 14px;
+}
+.pf-linha {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.pf-busca {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.pf-busca > i {
+  position: absolute;
+  left: 13px;
+  font-size: 13px;
+  color: var(--muted);
+  pointer-events: none;
+}
+.pf-busca input {
+  width: 100%;
+  min-width: 0;
+  padding: 11px 34px 11px 34px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+  background: var(--canvas);
+  font-size: 14px;
+  color: var(--ink);
+}
+[data-theme='dark'] .pf-busca input {
+  background: var(--surface);
+}
+.pf-busca input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0, 153, 255, 0.15);
+  outline: none;
+}
+.pf-limpar-busca {
+  position: absolute;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  background: transparent;
+}
+.pf-limpar-busca:hover {
+  color: var(--ink);
+  background: var(--surface);
+}
+.pf-botao {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 15px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+  background: var(--canvas);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+[data-theme='dark'] .pf-botao {
+  background: var(--surface);
+}
+.pf-botao.ativo {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.pf-conta {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+.pf-corpo {
+  margin-top: 12px;
+  padding: 14px 14px 2px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  background: var(--canvas);
+}
+[data-theme='dark'] .pf-corpo {
+  background: var(--surface);
+}
+.pf-limpar {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--expense);
+  background: transparent;
+  cursor: pointer;
+}
+/* No celular o rótulo longo da ordenação não cabe: o select encolhe o texto
+   sozinho, e o title do option continua dizendo tudo. */
+@media (max-width: 719px) {
+  .pf-corpo .field-row {
+    gap: 10px;
+  }
+}
