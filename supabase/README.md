@@ -41,6 +41,8 @@ pnpm types:supabase
 | `0021_push_no_celular.sql` | Assinaturas de push por aparelho, os avisos do dia, e o cron que chama a Edge Function |
 | `0022_moeda_brasileira_no_push.sql` | O valor da notificacao sai em real, nao no formato americano |
 | `0023_relogio_de_brasilia.sql` | Todas as funcoes passam a usar o horario de Brasilia, e o cron e reescrito pelo que vale aqui |
+| `0024_avisos_entre_o_casal.sql` | Gatilhos que avisam o outro quando alguem lanca ou da baixa |
+| `0025_anon_key_no_gateway_do_push.sql` | O push para de depender do verify_jwt, que um deploy zera |
 
 A numeracao 0003, 0004 e 0005 estava reservada na especificacao tecnica para funcoes,
 triggers e cron. Como storage e o ajuste de seguranca entraram antes, a ordem do disco
@@ -66,6 +68,25 @@ Para um teste manual, a funcao aceita `{"teste_para": "<uuid do perfil>"}` no
 corpo e manda um aviso unico para os aparelhos daquele perfil.
 
 ## Decisoes que valem lembrar
+
+- **O aviso de evento vai para o outro, nunca para quem fez.** Quem acabou de
+  cadastrar ja sabe o que cadastrou, e receber a propria acao de volta e o
+  caminho mais curto para a pessoa desligar a notificacao. Disso saem as tres
+  excecoes: escrita sem `auth.uid()` nao avisa, porque e o cron e a virada de
+  mes replica dezenas de linhas de uma vez; parcela de numero 2 em diante nao
+  avisa, porque a compra foi uma so; e baixa que nasce na mesma transacao do
+  lancamento nao avisa, porque o aviso de "novo lancamento" ja saiu no mesmo
+  instante. Esta ultima cobre a despesa no credito, o ajuste de saldo e o check
+  "ja foi paga" do cadastro.
+- **A Edge Function nao pode depender do `verify_jwt`.** Ele e configuracao do
+  painel e volta ao padrao ligado a cada deploy. Ja quebrou o push inteiro em
+  silencio, inclusive o aviso diario, porque o token do Vault nao e um JWT e o
+  gateway passou a recusar antes de a funcao rodar. Agora vao dois headers: a
+  anon key no `Authorization`, que e publica e so serve para o gateway deixar
+  passar, e o segredo do Vault no `x-token-push`, que e a prova de verdade.
+- **Aviso que falha nao pode derrubar o lancamento.** Os gatilhos de
+  notificacao terminam em `exception when others then raise warning`, porque o
+  lancamento e o fato e o aviso e so o recado.
 
 - **O banco roda em UTC, e ninguem deve confiar nisso.** `current_date` e
   `localtime` estao proibidos nas funcoes: use `private.fn_hoje()` e

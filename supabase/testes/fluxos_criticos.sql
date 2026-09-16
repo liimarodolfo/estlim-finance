@@ -3,7 +3,7 @@
 -- excecao do item 6 (formatos de data e hora), que vive no frontend e esta em
 -- src/lib/formatters.test.ts e src/lib/masks.test.ts. Os blocos 9, 10 e 11
 -- vieram depois: saldo da conta, categoria por tipo, e a fatura liquida com a
--- despesa no credito que nasce paga.
+-- despesa no credito que nasce paga. O 12 cobre os avisos entre o casal.
 --
 -- Como rodar: SQL Editor do painel do Supabase, com o papel de servico.
 -- Tudo o que o teste cria e apagado no fim. Se algum passo falhar, a excecao
@@ -20,6 +20,7 @@ declare
   v_base numeric; v_lido numeric; valor_inv numeric; st text;
   id_cartao2 uuid; id_fat2 uuid; v_venc date; v_venc2 date;
   n int; datas text; resultado text; r record;
+  id_outro uuid; id_assin uuid; fila bigint; id_pai uuid; carga jsonb;
 begin
   select id into uid from auth.users where email = 'rodolfo@rliima.com';
   if uid is null then
@@ -524,6 +525,107 @@ begin
   delete from pagamentos where lancamento_id in (select id from lancamentos where descricao like 'TESTE %');
   delete from lancamentos where descricao like 'TESTE %' or cartao_id = id_cartao2;
   delete from carteiras where id = id_cartao2;
+
+  -- ============================================================
+  -- 12. AVISOS ENTRE O CASAL: quem faz nao recebe, e um ato so
+  --     rende um aviso so.
+  -- ============================================================
+  -- Os avisos so existem quando ha usuario logado, entao o teste finge um. E
+  -- so existem quando alguem do outro lado tem aparelho assinado, entao ele
+  -- cria uma assinatura de mentira e apaga no fim. A conferencia e feita na
+  -- fila do pg_net, que e transacional: as linhas aparecem aqui dentro e sao
+  -- apagadas antes do commit, entao nenhum celular toca de verdade.
+  select id into id_outro from perfis where casal_id = casal and id <> uid limit 1;
+  if id_outro is null then
+    raise exception 'FALHOU 12: o casal tem so um perfil, nao da para testar aviso ao outro';
+  end if;
+
+  insert into assinaturas_push (casal_id, perfil_id, endpoint, p256dh, auth, aparelho)
+  values (casal, id_outro, 'https://exemplo.invalido/TESTE', 'p', 'a', 'TESTE')
+  returning id into id_assin;
+
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', uid, 'role', 'authenticated')::text, true);
+
+  select coalesce(max(id), 0) into fila from net.http_request_queue;
+
+  -- 12a. despesa nova avisa, com descricao e valor no corpo
+  insert into lancamentos (casal_id, tipo, descricao, natureza, tipo_valor, valor_previsto,
+                           data_vencimento, dono, forma_metodo, criado_por)
+  values (casal,'despesa','TESTE aviso mercado','avulsa','fixo', 1842.90,
+          private.fn_hoje(), 'Casal','pix', uid)
+  returning id into id_pai;
+
+  select count(*) into n from net.http_request_queue where id > fila;
+  if n <> 1 then raise exception 'FALHOU 12a: despesa nova enfileirou % avisos', n; end if;
+
+  select convert_from(body, 'utf8')::jsonb into carga
+    from net.http_request_queue where id > fila;
+  if carga->>'titulo' <> 'Nova despesa adicionada' then
+    raise exception 'FALHOU 12a: titulo veio %', carga->>'titulo';
+  end if;
+  if carga->>'corpo' not like 'TESTE aviso mercado · R$ 1.842,90%' then
+    raise exception 'FALHOU 12a: corpo veio %', carga->>'corpo';
+  end if;
+  -- e nao vai para quem lancou
+  if carga->'para_perfis' @> to_jsonb(uid) then
+    raise exception 'FALHOU 12a: o aviso voltou para quem fez o lancamento';
+  end if;
+  raise notice 'OK 12a: despesa nova avisa o outro, com descricao e valor em real';
+
+  -- 12b. baixa feita depois avisa de novo, com titulo proprio
+  delete from net.http_request_queue where id > fila;
+  insert into pagamentos (lancamento_id, data_pagamento, hora_pagamento, valor_pago, forma_metodo)
+  values (id_pai, private.fn_hoje(), private.fn_agora_hora(), 1842.90, 'pix');
+
+  select convert_from(body, 'utf8')::jsonb into carga
+    from net.http_request_queue where id > fila;
+  if carga->>'titulo' <> 'Conta paga' then
+    raise exception 'FALHOU 12b: titulo da baixa veio %', carga->>'titulo';
+  end if;
+  raise notice 'OK 12b: baixa avisa com titulo proprio';
+
+  -- 12c. lancamento que nasce pago rende UM aviso, nao dois. E o caso da
+  --      despesa no credito, do ajuste de saldo e do check "ja foi paga".
+  delete from net.http_request_queue where id > fila;
+  insert into lancamentos (casal_id, tipo, descricao, natureza, tipo_valor, valor_previsto,
+                           data_vencimento, dono, forma_metodo, forma_ref, criado_por)
+  values (casal,'despesa','TESTE aviso no credito','avulsa','fixo', 119.00,
+          private.fn_hoje(), 'Casal','credito', id_cartao::text, uid);
+
+  select count(*) into n from net.http_request_queue where id > fila;
+  if n <> 1 then raise exception 'FALHOU 12c: despesa no credito enfileirou % avisos', n; end if;
+  raise notice 'OK 12c: o que nasce pago rende um aviso so';
+
+  -- 12d. parcela 2 em diante nao avisa: a compra foi uma so
+  delete from net.http_request_queue where id > fila;
+  insert into lancamentos (casal_id, tipo, descricao, natureza, tipo_valor, valor_previsto,
+                           data_vencimento, dono, forma_metodo, grupo_parcelas,
+                           parcela_atual, parcela_total, criado_por)
+  values (casal,'despesa','TESTE aviso parcela 2/3','parcelada','fixo', 50.00,
+          private.fn_hoje(), 'Casal','pix', gen_random_uuid(), 2, 3, uid);
+
+  select count(*) into n from net.http_request_queue where id > fila;
+  if n <> 0 then raise exception 'FALHOU 12d: parcela 2 enfileirou % avisos', n; end if;
+  raise notice 'OK 12d: parcela seguinte nao repete o aviso da compra';
+
+  -- 12e. sem usuario logado nao avisa: e o cron, e a virada de mes replica
+  --      dezenas de linhas de uma vez
+  delete from net.http_request_queue where id > fila;
+  perform set_config('request.jwt.claims', null, true);
+  insert into lancamentos (casal_id, tipo, descricao, natureza, tipo_valor, valor_previsto,
+                           data_vencimento, dono, forma_metodo)
+  values (casal,'despesa','TESTE aviso do sistema','fixa','fixo', 10.00,
+          private.fn_hoje(), 'Casal','pix');
+
+  select count(*) into n from net.http_request_queue where id > fila;
+  if n <> 0 then raise exception 'FALHOU 12e: escrita do sistema enfileirou % avisos', n; end if;
+  raise notice 'OK 12e: escrita sem usuario logado nao vira notificacao';
+
+  delete from net.http_request_queue where id > fila;
+  delete from assinaturas_push where id = id_assin;
+  delete from pagamentos where lancamento_id in (select id from lancamentos where descricao like 'TESTE aviso%');
+  delete from lancamentos where descricao like 'TESTE aviso%';
 
   -- ============================================================
   -- CATEGORIA DE SISTEMA E EXCLUSAO DE CARTEIRA

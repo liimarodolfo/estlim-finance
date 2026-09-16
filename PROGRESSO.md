@@ -124,6 +124,51 @@ testado escrito na mensagem.
 
 ## Diario de sessoes
 
+### Sessao 10 · 16/09/2026 · Um avisa o outro, e o push quase morreu no caminho
+
+O pedido do Rodolfo veio com o motivo junto, e foi o motivo que desenhou a
+feature: "temos dois usuarios e e um jeito de notificar o outro usuario". Entao
+o aviso de evento vai para o outro, nunca para quem fez. Receber de volta a
+propria acao seria o caminho mais curto para alguem desligar a notificacao.
+
+Dessa regra sairam as excecoes, e elas sao a maior parte do trabalho:
+
+- **Escrita sem usuario logado nao avisa.** Quem escreve sem `auth.uid()` e o
+  cron, e a virada de mes replica dezenas de linhas de uma vez. Um lote desses
+  as 00h10 nao e aviso, e despertador.
+- **Parcela 2 em diante nao avisa.** Passar o cartao em 5x cria 5 linhas no
+  mesmo instante. O aviso e um so e diz "em 5x".
+- **Baixa que nasce junto do lancamento nao avisa.** Sao tres casos e nos tres
+  o aviso de "novo lancamento" acabou de sair: a despesa no credito, que nasce
+  paga pela operadora; o ajuste de saldo; e o check "ja foi paga" do cadastro.
+  A comparacao e com `now()`, que dentro da transacao nao anda, entao o que ela
+  pergunta de verdade e "isto veio no mesmo ato?".
+- **A fatura nao avisa.** Ela nasce por gatilho junto com o cartao. Nao foi uma
+  decisao de gasto, foi o sistema abrindo a conta onde os gastos vao cair.
+
+O que chega no celular: "Nova despesa adicionada" com "Mercado · R$ 842,90 ·
+por Thainy". Na baixa o titulo muda conforme o caso, entre Conta paga, Receita
+recebida, Aporte aplicado e Fatura paga.
+
+**O susto.** Publicar a Edge Function devolveu o `verify_jwt` para o padrao
+ligado, e o gateway passou a exigir JWT antes de a funcao rodar. O token do
+Vault nao e JWT, entao toda chamada virou 401 UNAUTHORIZED_INVALID_JWT_FORMAT.
+Em silencio, porque ninguem olha o `net._http_response`. Teria levado junto o
+aviso diario do cron, que estava funcionando ontem.
+
+Achei porque fui conferir a resposta da primeira chamada em vez de confiar no
+"sucesso" do disparo. A correcao tira o assunto do caminho de vez: vao dois
+headers, a anon key no `Authorization`, que e publica e so serve para o gateway
+deixar passar, e o segredo do Vault no `x-token-push`, que continua sendo a
+prova de verdade. Nao depende mais de configuracao nenhuma do painel.
+
+**O teste.** O bloco 12 confere na fila do pg_net, que e transacional: as
+linhas aparecem dentro da transacao e sao apagadas antes do commit, entao
+nenhum celular toca. Ele assina um aparelho de mentira para o outro perfil, e
+verifica titulo, corpo em real e a ausencia de quem lancou na lista de
+destinatarios. Provei que ele enxerga de verdade quebrando uma assercao de
+proposito antes de dar por encerrado.
+
 ### Sessao 10 · 16/09/2026 · Pagos e Recebidos separados
 
 O Rodolfo pediu para dividir o grupo Concluidos em Pagos e Recebidos. O pedido
