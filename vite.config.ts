@@ -9,6 +9,11 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
+      // injectManifest em vez de generateSW: o service worker e escrito a mao em
+      // src/sw.ts, porque push precisa de handler proprio e o gerado nao aceita.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'prompt',
       includeAssets: ['icone.svg', 'apple-touch-icon.png'],
       manifest: {
@@ -30,17 +35,12 @@ export default defineConfig({
           { src: '/icone.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
         ],
       },
-      workbox: {
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
-        navigateFallbackDenylist: [/^\/api/],
-        runtimeCaching: [
-          {
-            // O Supabase nunca entra no cache do service worker: quem guarda os
-            // dados offline e o React Query no IndexedDB, que sabe a idade deles.
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-            handler: 'NetworkOnly',
-          },
-        ],
+        // Formato classico, nao modulo ES. Service worker como modulo tem
+        // suporte irregular, e o Safari, que e justamente o alvo do push aqui,
+        // recusa registrar.
+        rollupFormat: 'iife',
       },
       devOptions: { enabled: false },
     }),

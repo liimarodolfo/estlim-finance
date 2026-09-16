@@ -48,11 +48,22 @@ export function BarraPWA() {
     const aoFicarOnline = () => setOnline(true)
     const aoFicarOffline = () => setOnline(false)
 
+    // O service worker avisa quando o usuário toca numa notificação, para a
+    // janela que já está aberta ir até a tela do aviso em vez de ficar parada.
+    const aoReceberDoSW = (e: MessageEvent) => {
+      if (e.data?.type === 'IR_PARA' && typeof e.data.caminho === 'string') {
+        window.history.pushState({}, '', e.data.caminho)
+        window.dispatchEvent(new PopStateEvent('popstate'))
+      }
+    }
+
+    navigator.serviceWorker?.addEventListener('message', aoReceberDoSW)
     window.addEventListener('beforeinstallprompt', aoPoderInstalar)
     window.addEventListener('appinstalled', aoInstalar)
     window.addEventListener('online', aoFicarOnline)
     window.addEventListener('offline', aoFicarOffline)
     return () => {
+      navigator.serviceWorker?.removeEventListener('message', aoReceberDoSW)
       window.removeEventListener('beforeinstallprompt', aoPoderInstalar)
       window.removeEventListener('appinstalled', aoInstalar)
       window.removeEventListener('online', aoFicarOnline)

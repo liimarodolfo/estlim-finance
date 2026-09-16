@@ -7,7 +7,7 @@ Arquivo vivo. O Claude Code le no inicio de toda sessao e atualiza ao fim de cad
 | # | Bloqueio | Impacto | Como resolver |
 |---|---|---|---|
 | B1 | Push para o GitHub bloqueado pelo modo automatico da sessao | Commits ficam locais ate alguem empurrar | Rodolfo empurra pelo GitHub Desktop, ou libera uma regra de Bash para `git push` nas configuracoes do Claude Code |
-| B7 | Notificacao push no celular nao implementada | Os tres gatilhos escolhidos (vespera, no dia e atraso) existem so como notificacao dentro do app, no sino | Precisa de chaves VAPID, uma Edge Function com web-push, uma tabela de assinaturas e a permissao concedida no aparelho. Nada disso e caro, mas depende de configurar segredo na Edge Function, o que a CLI faz e o MCP nao |
+| B7 | Resolvido em 16/09/2026 | Push implementado ponta a ponta. O segredo nao precisou da CLI: o Vault do Supabase guarda as chaves e a Edge Function as le pela chave de servico | Falta so o Rodolfo tocar em Ativar notificacoes no iPhone, com o app instalado na tela de inicio |
 | B8 | Protecao contra senha vazada desligada no Supabase Auth | O unico alerta que sobrou no linter de seguranca | Ligar em Authentication > Policies > Password Security no painel. E um clique |
 | B2 | Resolvido em 15/09/2026 | Projeto `estlim-finance` criado na conta `rodolfo-liimas-projects`, com o repositorio `liimarodolfo/estlim-finance` conectado na branch `main` | Feito pelo Rodolfo no painel. O MCP da Vercel so consegue criar deploy: `create_git_project` devolve 403 pedindo reautenticacao do escopo, e nao existe ferramenta nenhuma para variavel de ambiente |
 | B3 | Resolvido em 15/09/2026 | As tres variaveis cadastradas nos tres ambientes | Feito pelo Rodolfo, importando o `.env.vercel` |
@@ -123,6 +123,51 @@ testado escrito na mensagem.
 | D2 | As pills de mes rolam sozinhas para deixar o mes ativo visivel. O prototipo nao faz isso e abre sempre em Jan, mesmo com Ago ativo. Considerei defeito e corrigi | aplicado, avisar |
 
 ## Diario de sessoes
+
+### Sessao 8 · 16/09/2026 · Push no celular
+
+O sino da topbar so falava com o app aberto. Agora as contas avisam no celular
+com o app fechado.
+
+**O que o iOS exige, e que decide o desenho.** Push no iPhone so funciona com o
+app instalado na tela de inicio, do iOS 16.4 em diante; no Safari em aba a API
+nem existe. A permissao precisa sair de um toque do usuario, senao o sistema
+recusa em silencio. E nao ha agendamento local: quem dispara "vence amanha" e o
+servidor, nunca o aparelho.
+
+**O bloqueio B7 caiu por um caminho que eu nao tinha visto.** Quando o registrei,
+achei que a chave privada precisaria ser colada por ele no painel, porque o MCP
+nao configura segredo de Edge Function. Mas o projeto tem o Vault do Supabase
+instalado: as chaves ficam la, criptografadas, e a Edge Function as le pela
+chave de servico. Nenhum passo manual sobrou.
+
+**As pecas.** Tabela `assinaturas_push` com RLS por perfil; tres segredos no
+Vault (chave VAPID, token do cron, endereco da funcao) lidos por funcoes negadas
+a anon e authenticated; `fn_avisos_para_push` montando os quatro avisos ja
+agrupados por tipo; a Edge Function `enviar-push` com web-push; e o pg_cron
+chamando por pg_net as 9h de Brasilia.
+
+**A mudanca mais invasiva foi no service worker.** Ele era gerado pelo plugin, o
+que dava o cache offline mas nao deixava espaco para nada mais: push exige um
+handler proprio. O arquivo passou a ser escrito a mao em `src/sw.ts`, com o
+precache igual ao de antes e os handlers de `push` e `notificationclick` no fim.
+Tocar na notificacao leva a janela ja aberta para a tela do aviso, em vez de
+abrir outra.
+
+Um detalhe que custou tempo: com `injectManifest` o plugin gera o SW como modulo
+ES por padrao, e service worker como modulo tem suporte irregular. Como o alvo
+aqui e justamente o Safari, o formato foi fixado em `iife`.
+
+**O que deu para testar e o que nao deu.** A Edge Function foi exercitada de
+verdade: responde 200 com o token certo, 401 sem ele e 401 com token errado, e a
+`web-push` carrega no Deno. As funcoes do banco rodam. O build gera o SW com os
+dois handlers. A tela de Perfil detecta o estado do aparelho e mostrou
+corretamente o caso de permissao negada.
+
+O que nao deu: o navegador embutido do painel **nao registra service worker
+nenhum**, nem um trivial de uma linha, entao o ciclo completo (assinar, o
+servidor enviar, a notificacao aparecer) so pode ser confirmado no aparelho do
+Rodolfo. Isso esta dito na resposta, sem enfeite.
 
 ### Sessao 7 · 15/09/2026 · A fatura na lista
 

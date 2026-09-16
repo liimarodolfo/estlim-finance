@@ -38,12 +38,45 @@ pnpm types:supabase
 | `0018_saldo_automatico_das_contas.sql` | Gatilho que faz o saldo da conta seguir os pagamentos, mais o recalculo retroativo |
 | `0019_fatura_liquida_e_credito_ja_pago.sql` | Fatura desconta o que ja foi lancado em detalhe, despesa no credito nasce paga, e o pagamento passa a bastar-se para ser desfeito |
 | `0020_fatura_acumula_e_fecha.sql` | A fatura aberta acumula sozinha, fecha com confirmacao, o `usado` vira derivado e o dia de fechamento passa a valer |
+| `0021_push_no_celular.sql` | Assinaturas de push por aparelho, os avisos do dia, e o cron que chama a Edge Function |
 
 A numeracao 0003, 0004 e 0005 estava reservada na especificacao tecnica para funcoes,
 triggers e cron. Como storage e o ajuste de seguranca entraram antes, a ordem do disco
 deixou de bater com a do documento. Vale a ordem do disco.
 
+## Edge Functions
+
+`enviar-push` manda as notificacoes do dia. A fonte esta em
+`supabase/functions/enviar-push/index.ts` e foi publicada pelo MCP.
+
+Ela roda com `verify_jwt` desligado de proposito. Nao e afrouxamento: com o
+verify ligado, o Supabase aceitaria qualquer JWT do projeto, inclusive a anon
+key, que qualquer pessoa le no bundle do app. No lugar disso a funcao confere um
+token proprio, que vive no Vault e so a chave de servico consegue ler. E mais
+estrito, nao menos.
+
+Tres segredos vivem no Vault e nunca em coluna comum nem no codigo:
+`vapid_private` (a chave que assina as mensagens), `token_cron_push` (o que o
+cron apresenta) e `url_push` (o endereco da funcao). As funcoes que os leem sao
+negadas a `anon` e `authenticated`, e concedidas so a `service_role`.
+
+Para um teste manual, a funcao aceita `{"teste_para": "<uuid do perfil>"}` no
+corpo e manda um aviso unico para os aparelhos daquele perfil.
+
 ## Decisoes que valem lembrar
+
+- **Push no iOS so existe com o app instalado na tela de inicio**, do iOS 16.4
+  em diante. No Safari em aba a API nem aparece, e por isso a tela de Perfil
+  detecta esse caso e explica em vez de mostrar um botao que nao funcionaria.
+- **Nao ha agendamento local em PWA.** Quem dispara "vence amanha" e o servidor,
+  pelo `pg_cron`, nunca o aparelho. E o motivo de o push depender do cron e nao
+  de um timer no navegador.
+- **Os avisos vao agrupados por tipo.** Tres contas vencendo amanha viram uma
+  notificacao, nao tres: senao vira spam e o usuario desliga tudo.
+- **Assinatura que responde 404 ou 410 e apagada na hora.** Significa aparelho
+  sem o app ou permissao revogada, e insistir so gasta invocacao. Erro
+  passageiro apenas conta uma falha, e depois de cinco a assinatura para de ser
+  tentada.
 
 - O saldo da conta nao e digitado, e consequencia. Quem move e o gatilho
   `trg_saldo_da_conta`, que olha a forma do PAGAMENTO, nao a do lancamento, porque a
