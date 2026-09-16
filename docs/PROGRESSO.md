@@ -124,6 +124,53 @@ testado escrito na mensagem.
 
 ## Diario de sessoes
 
+### Sessao 9 · 16/09/2026 · O push funcionando, e o fuso que ele revelou
+
+A notificacao chegou no iPhone do Rodolfo no primeiro teste, o que fechou o
+caminho inteiro: assinatura, envio pela Apple, service worker e exibicao. Mas
+chegou com os acentos virando losango, e a caca a esse defeito descobriu outro
+bem maior.
+
+**Os acentos.** Conferi primeiro que nao era o meu terminal: os bytes saiam como
+UTF-8 correto. Passar o payload como Buffer com encoding explicito nao resolveu.
+O que resolveu foi mandar o JSON em ASCII puro, com os acentos escapados em
+\uXXXX, deixando o JSON.parse do service worker reconstruir do outro lado.
+Confirmado com um teste que trazia as duas versoes na mesma notificacao: "SEM
+acento: Serao a vista" e "COM acento: Serão à vista", as duas legiveis.
+
+Uma coisa atrapalhou o diagnostico: todas as notificacoes de teste usavam a
+mesma etiqueta, e o iOS as empilha. O Rodolfo estava vendo as antigas junto das
+novas, e por duas rodadas achamos que a correcao nao tinha pegado.
+
+**A moeda.** Peguei esse antes de ele avisar, simulando o disparo automatico: o
+valor saia "R$ 1,800.00". Os simbolos G e D do to_char seguem o lc_numeric do
+banco, que e en_US. Com mascara literal e translate, virou "R$ 1.800,00". Teria
+passado batido ate a primeira notificacao de verdade, com o valor errado.
+
+**O fuso, que era o problema grande.** O Rodolfo perguntou qual timezone eu
+estava usando. O banco roda em UTC, e todas as funcoes usavam current_date e
+localtime. Medido no proprio banco: uma despesa no credito lancada as 11h30
+daqui nascia paga as 14h30. E entre 21h e meia-noite o banco ja acha que e o dia
+seguinte, o que erra status de atrasado, ciclo da fatura e os avisos de
+vencimento.
+
+Os registros antigos escaparam por sorte: todos vieram pelo app, que manda o
+relogio do aparelho. O estrago estava so no que o banco grava sozinho, que e
+justamente o que acabou de nascer com o push e com a baixa automatica do
+credito.
+
+Sete funcoes foram reescritas com `private.fn_hoje()` e
+`private.fn_agora_hora()`. Explicitas em vez de mudar a configuracao da sessao,
+para valerem igual no cron, no PostgREST e no SQL Editor.
+
+O cron tambem estava torto, e esse ninguem tinha percebido: a virada de mes
+rodava as 00:10 UTC do dia 1, que e 21:10 do dia 30 ou 31 aqui. Ela acontecia
+antes de o mes virar. Passou para 03:10 UTC, que e 00:10 daqui.
+
+E no frontend havia o mesmo erro em miniatura: o mes corrente saia de
+`toISOString`, em UTC, e entre 21h e meia-noite a fatura pareceria fechada antes
+da hora.
+
 ### Sessao 8 · 16/09/2026 · Push no celular
 
 O sino da topbar so falava com o app aberto. Agora as contas avisam no celular

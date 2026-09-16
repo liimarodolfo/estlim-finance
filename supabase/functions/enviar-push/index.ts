@@ -8,6 +8,7 @@
 // A chave privada VAPID tambem vem do Vault, nunca do codigo.
 import webpush from 'npm:web-push@3.6.7'
 import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { Buffer } from 'node:buffer'
 
 const URL_SUPABASE = Deno.env.get('SUPABASE_URL')!
 const CHAVE_SERVICO = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -25,7 +26,18 @@ type Aviso = {
 }
 
 const json = (corpo: unknown, status = 200) =>
-  new Response(JSON.stringify(corpo), { status, headers: { 'Content-Type': 'application/json' } })
+  new Response(JSON.stringify(corpo), {
+    status,
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+  })
+
+// O payload criptografado chegava no iPhone com os acentos virando o losango de
+// substituicao: "Serao" saia "Ser?o". Em vez de depender de como cada camada
+// trata byte multibyte, o JSON sai em ASCII puro, com os acentos escapados em
+// \uXXXX. O JSON.parse do service worker devolve o caractere certo do outro
+// lado, e nao sobra ambiguidade no meio do caminho.
+const emAscii = (texto: string) =>
+  texto.replace(/[-￿]/g, (c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'))
 
 Deno.serve(async (req: Request) => {
   const banco = createClient(URL_SUPABASE, CHAVE_SERVICO)
@@ -57,7 +69,7 @@ Deno.serve(async (req: Request) => {
       ...a,
       titulo: pedido.titulo ?? 'Notificação de teste',
       corpo: pedido.corpo ?? 'Se você está lendo isto, o push está funcionando.',
-      tag: 'teste',
+      tag: pedido.tag ?? 'teste',
       caminho: '/',
     }))
   } else {
@@ -72,15 +84,19 @@ Deno.serve(async (req: Request) => {
 
   for (const aviso of avisos) {
     const assinatura = { endpoint: aviso.endpoint, keys: { p256dh: aviso.p256dh, auth: aviso.auth } }
-    const carga = JSON.stringify({
-      titulo: aviso.titulo,
-      corpo: aviso.corpo,
-      tag: aviso.tag,
-      caminho: aviso.caminho,
-    })
+    const carga = emAscii(
+      JSON.stringify({
+        titulo: aviso.titulo,
+        corpo: aviso.corpo,
+        tag: aviso.tag,
+        caminho: aviso.caminho,
+      }),
+    )
 
     try {
-      await webpush.sendNotification(assinatura, carga, { TTL: 60 * 60 * 12 })
+      await webpush.sendNotification(assinatura, Buffer.from(carga, 'ascii'), {
+        TTL: 60 * 60 * 12,
+      })
       enviados++
     } catch (erro) {
       const status = (erro as { statusCode?: number }).statusCode

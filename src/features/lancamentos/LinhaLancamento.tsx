@@ -51,9 +51,13 @@ export function LinhaLancamento({
   const descascada = ehFatura && !faturaAberta && (l.valor_detalhado ?? 0) > 0
 
   // Passado o dia de fechamento, a fatura espera a confirmação do valor final.
-  const diaHoje = new Date().getDate()
+  // O mês corrente vem do relógio local, nunca de toISOString: entre 21h e
+  // meia-noite o UTC já está no mês seguinte, e a fatura pareceria fechada
+  // antes da hora.
+  const agora = new Date()
+  const diaHoje = agora.getDate()
   const mesDaLinha = l.data_vencimento?.slice(0, 7) ?? ''
-  const mesCorrente = new Date().toISOString().slice(0, 7)
+  const mesCorrente = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}`
   const jaFechou =
     faturaAberta &&
     l.cartao_fechamento != null &&

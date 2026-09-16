@@ -39,6 +39,8 @@ pnpm types:supabase
 | `0019_fatura_liquida_e_credito_ja_pago.sql` | Fatura desconta o que ja foi lancado em detalhe, despesa no credito nasce paga, e o pagamento passa a bastar-se para ser desfeito |
 | `0020_fatura_acumula_e_fecha.sql` | A fatura aberta acumula sozinha, fecha com confirmacao, o `usado` vira derivado e o dia de fechamento passa a valer |
 | `0021_push_no_celular.sql` | Assinaturas de push por aparelho, os avisos do dia, e o cron que chama a Edge Function |
+| `0022_moeda_brasileira_no_push.sql` | O valor da notificacao sai em real, nao no formato americano |
+| `0023_relogio_de_brasilia.sql` | Todas as funcoes passam a usar o horario de Brasilia, e o cron e reescrito pelo que vale aqui |
 
 A numeracao 0003, 0004 e 0005 estava reservada na especificacao tecnica para funcoes,
 triggers e cron. Como storage e o ajuste de seguranca entraram antes, a ordem do disco
@@ -64,6 +66,22 @@ Para um teste manual, a funcao aceita `{"teste_para": "<uuid do perfil>"}` no
 corpo e manda um aviso unico para os aparelhos daquele perfil.
 
 ## Decisoes que valem lembrar
+
+- **O banco roda em UTC, e ninguem deve confiar nisso.** `current_date` e
+  `localtime` estao proibidos nas funcoes: use `private.fn_hoje()` e
+  `private.fn_agora_hora()`, que devolvem o horario de Brasilia. Sao explicitas
+  de proposito, para valerem igual no cron, no PostgREST e no SQL Editor, sem
+  depender de configuracao de sessao. O que o UTC causava: despesa no credito
+  lancada as 11h30 nascia paga as 14h30, e entre 21h e meia-noite o banco ja
+  achava que era o dia seguinte, errando status, virada de mes e avisos.
+- **O pg_cron agenda em UTC.** Os horarios sao escritos pelo que valem aqui:
+  `10 3 1 * *` e 00:10 do dia 1 em Brasilia. Antes a virada estava em
+  `10 0 1 * *`, que e 21:10 do dia 30 ou 31, ou seja, rodava antes de o mes
+  virar.
+- **O payload do push vai em ASCII puro.** Os acentos seguem escapados em
+  `\uXXXX` e o `JSON.parse` do service worker os reconstroi. Enviar o texto com
+  bytes multibyte fazia os acentos chegarem no iPhone como losango de
+  substituicao, e nem passar o Buffer com encoding explicito resolvia.
 
 - **Push no iOS so existe com o app instalado na tela de inicio**, do iOS 16.4
   em diante. No Safari em aba a API nem aparece, e por isso a tela de Perfil
