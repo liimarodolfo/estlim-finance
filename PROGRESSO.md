@@ -124,6 +124,56 @@ testado escrito na mensagem.
 
 ## Diario de sessoes
 
+### Sessao 11 · 16/09/2026 · Busca, filtros, extrato e a tela de Relatorios
+
+Sessao de muitos pedidos curtos em sequencia. Em ordem de entrega:
+
+**Busca no topo.** Lupa na topbar, procurando em todos os meses. O escopo e o
+ano inteiro de proposito: limitada ao mes visivel, ela repetiria a lista que ja
+esta na tela. O resultado nao abre a edicao, leva para o mes do lancamento e
+destaca a linha, para a conta ser lida no meio das outras.
+
+De quebra, o filtro dos chips saiu do estado local e foi para o store, que ja
+tinha o campo sem uso desde o inicio. Sem isso a busca nao conseguia zerar o
+filtro, e a linha achada podia cair fora do recorte em uso.
+
+**Filtro dentro de Lancamentos**, entre os chips e o primeiro grupo. Nasce
+recolhido mostrando so a busca: os quatro seletores abertos empurrariam a lista
+para fora da tela no celular. Duas decisoes que valem registro:
+
+- "Recebeu de" e "Pagou para" se somam em vez de se cruzarem. Cruzados, marcar
+  um de cada lado nao devolveria nada, porque nenhum lancamento e receita e
+  despesa ao mesmo tempo.
+- "Ordenar por" diz Valor e Data por extenso. O pedido falava so "crescente" e
+  "decrescente", que ao lado de duas opcoes de data nao diz de que.
+
+**O saldo passou a dizer onde esta.** O Rodolfo perguntou de onde vinham os
+R$ 16.146,55. Vinham de cinco pagamentos, todos numa conta so, a Nubank do
+perfil RLiima, com as duas contas pessoais zeradas. Dai sairam duas telas: o
+detalhamento por conta no card do Resumo rapido, e o extrato.
+
+**Extrato.** A fonte e a tabela de pagamentos, e nao a de lancamentos, porque e
+assim que a regra funciona e o proprio Rodolfo confirmou: o dinheiro so sai
+quando o pagamento e registrado, e so entra quando o recebimento e registrado.
+Ele existe em dois lugares, por pedido: um por conta, no botao da linha, e um
+da selecao inteira no pe da Carteira, que segue o perfil escolhido nos chips.
+Os dois comparam o que somam com o saldo gravado e avisam quando nao bate.
+
+**Relatorios.** Categorias saiu da barra de baixo e virou um atalho dentro de
+Lancamentos, que e a tela onde se fala de categoria o tempo todo. A casa ficou
+para os Relatorios, com quatro deles e dois modos de periodo, mes e ano:
+entradas e saidas, categoria ao longo do tempo, por pessoa e por perfil, e para
+quem vai o dinheiro. Os quatro saem de uma consulta so.
+
+O valor usado e o mesmo das listas, e a fatura entra sem tratamento especial de
+proposito: o `valor_exibido` dela ja vem liquido da view, entao somar tudo nao
+conta a mesma compra duas vezes.
+
+**Um erro meu, corrigido no caminho:** as regras novas de CSS usavam
+`var(--card)`, que nao existe nos tokens. Os paineis saiam transparentes, com o
+conteudo de tras aparecendo atraves. O protótipo usa `--canvas` no claro e
+`--surface` no escuro.
+
 ### Sessao 10 · 16/09/2026 · Um avisa o outro, e o push quase morreu no caminho
 
 O pedido do Rodolfo veio com o motivo junto, e foi o motivo que desenhou a

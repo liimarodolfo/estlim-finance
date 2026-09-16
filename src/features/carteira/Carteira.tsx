@@ -11,6 +11,7 @@ import { GRADIENTE_DONO, gradienteDaMarca } from '@/lib/marcas'
 import { useCarteiras } from '@/hooks/useCarteiras'
 import { SheetCarteira } from '@/features/carteira/SheetCarteira'
 import { SheetExtrato } from '@/features/carteira/SheetExtrato'
+import { ExtratoDaSelecao } from '@/features/carteira/ExtratoDaSelecao'
 import { SheetAjuste } from '@/features/carteira/SheetAjuste'
 import type { Carteira as TipoCarteiraLinha, Dono, TipoCarteira } from '@/types/database'
 
@@ -275,6 +276,11 @@ export default function Carteira() {
           Novo cartão
         </button>
       </div>
+
+      <ExtratoDaSelecao
+        contas={contas}
+        rotulo={perfil === 'Geral' ? 'geral' : `de ${perfil}`}
+      />
 
       <SheetCarteira
         // Remontar por key garante formulário limpo a cada abertura.

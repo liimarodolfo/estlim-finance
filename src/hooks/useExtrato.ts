@@ -5,6 +5,7 @@ import type { LancTipo } from '@/types/database'
 
 export type Movimento = {
   id: string
+  carteiraId: string
   data: string
   hora: string | null
   descricao: string
@@ -32,24 +33,30 @@ export type Extrato = {
  * O ajuste de carteira também nasce como pagamento, então ele entra na lista
  * sozinho, com o motivo na descrição.
  */
-export function useExtrato(carteiraId: string | null) {
+export function useExtrato(carteiras: string[] | null) {
+  // A chave ordena os ids para a mesma selecao nao virar duas entradas de cache
+  // so porque as contas vieram em outra ordem.
+  const ids = carteiras ? [...carteiras].sort() : null
+
   return useQuery({
-    queryKey: ['extrato', carteiraId],
-    enabled: carteiraId !== null,
+    queryKey: ['extrato', ids],
+    enabled: ids !== null && ids.length > 0,
     queryFn: async (): Promise<Extrato> => {
       const { data: baixas, error } = await supabase
         .from('pagamentos')
-        .select('id, lancamento_id, data_pagamento, hora_pagamento, valor_pago')
-        .eq('forma_ref', carteiraId as string)
+        .select('id, lancamento_id, forma_ref, data_pagamento, hora_pagamento, valor_pago')
+        .in('forma_ref', ids as string[])
       if (error) throw comoErro(error)
 
-      const ids = baixas.map((p) => p.lancamento_id).filter((id): id is string => id !== null)
-      if (ids.length === 0) return { movimentos: [], entradas: 0, saidas: 0, saldo: 0 }
+      const deLancamentos = baixas
+        .map((p) => p.lancamento_id)
+        .filter((id): id is string => id !== null)
+      if (deLancamentos.length === 0) return { movimentos: [], entradas: 0, saidas: 0, saldo: 0 }
 
       const { data: lancs, error: erroLancs } = await supabase
         .from('lancamentos')
         .select('id, descricao, tipo')
-        .in('id', ids)
+        .in('id', deLancamentos)
       if (erroLancs) throw comoErro(erroLancs)
 
       const porId = new Map(lancs.map((l) => [l.id, l]))
@@ -61,6 +68,7 @@ export function useExtrato(carteiraId: string | null) {
         const entrada = l.tipo === 'receita'
         movimentos.push({
           id: p.id,
+          carteiraId: p.forma_ref ?? '',
           data: p.data_pagamento,
           hora: p.hora_pagamento,
           descricao: l.descricao,

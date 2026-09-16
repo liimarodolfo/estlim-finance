@@ -478,3 +478,237 @@ body {
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
+
+/* ==========================================================================
+   RELATORIOS E O ATALHO DE CATEGORIAS
+   Categorias saiu da barra de baixo e virou um atalho dentro de Lançamentos,
+   liberando a última casa para os Relatórios. Nada disso existe no protótipo.
+   ========================================================================== */
+.atalho-categorias {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 14px;
+  padding: 12px 16px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+  background: var(--canvas);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+[data-theme='dark'] .atalho-categorias {
+  background: var(--surface);
+}
+.atalho-categorias:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.atalho-categorias span {
+  flex: 1;
+  text-align: left;
+}
+.rel-ano {
+  padding: 9px 13px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+  background: var(--canvas);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+[data-theme='dark'] .rel-ano {
+  background: var(--surface);
+}
+.rel-resumo {
+  display: flex;
+  gap: 10px;
+}
+.rr-bloco {
+  flex: 1;
+  min-width: 0;
+  padding: 12px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  text-align: center;
+}
+.rr-bloco span {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.rr-bloco b {
+  display: block;
+  margin-top: 4px;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+.rel-nota {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+.rel-fluxo {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 150px;
+  margin-top: 6px;
+}
+.rf-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+}
+.rf-barras {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+}
+.rf-barra {
+  width: 46%;
+  max-width: 12px;
+  border-radius: 3px 3px 0 0;
+  transition: height 0.4s cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+.rf-in {
+  background: var(--income);
+}
+.rf-out {
+  background: var(--expense);
+}
+.rf-rot {
+  margin-top: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.rel-cat {
+  padding: 13px 0;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.rel-cat:last-child {
+  border-bottom: none;
+}
+.rc-topo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.rc-ponto {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+}
+.rc-nome {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rc-fatia {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.rc-total {
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.rc-serie {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 26px;
+  margin-top: 9px;
+  padding-left: 19px;
+}
+.rc-mes {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+.rc-mes-barra {
+  width: 100%;
+  border-radius: 2px;
+  opacity: 0.75;
+}
+.rel-perfil,
+.rel-nome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--hairline-soft);
+}
+.rel-perfil:last-child,
+.rel-nome:last-child {
+  border-bottom: none;
+}
+.rp-nome b,
+.rn-info b {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+.rp-nome span,
+.rn-info span {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.rp-saldo,
+.rel-nome > b {
+  flex: 0 0 auto;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.rel-subtitulo {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  margin: 0 0 8px 2px;
+}
+.rel-duo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+@media (max-width: 719px) {
+  .rel-duo {
+    grid-template-columns: 1fr;
+  }
+  .rel-fluxo {
+    height: 120px;
+  }
+}

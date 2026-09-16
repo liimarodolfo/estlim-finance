@@ -6,6 +6,7 @@ import Carteira from '@/features/carteira/Carteira'
 import Investimentos from '@/features/investimentos/Investimentos'
 import Agenda from '@/features/agenda/Agenda'
 import Categorias from '@/features/categorias/Categorias'
+import Relatorios from '@/features/relatorios/Relatorios'
 import Perfil from '@/features/perfil/Perfil'
 import Catalogo from '@/features/catalogo/Catalogo'
 import { NaoEncontrada } from '@/app/NaoEncontrada'
@@ -40,6 +41,7 @@ export const rotas = createBrowserRouter([
       { path: 'investir', element: <Investimentos /> },
       { path: 'agenda', element: <Agenda /> },
       { path: 'categorias', element: <Categorias /> },
+      { path: 'relatorios', element: <Relatorios /> },
       { path: 'perfil', element: <Perfil /> },
       { path: '*', element: <NaoEncontrada /> },
     ],
