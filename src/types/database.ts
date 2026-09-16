@@ -51,6 +51,42 @@ export type Database = {
         }
         Relationships: []
       }
+      assinaturas_push: {
+        Row: {
+          aparelho: string | null
+          auth: string
+          casal_id: string
+          criado_em: string
+          endpoint: string
+          falhas: number
+          id: string
+          p256dh: string
+          perfil_id: string
+        }
+        Insert: {
+          aparelho?: string | null
+          auth: string
+          casal_id: string
+          criado_em?: string
+          endpoint: string
+          falhas?: number
+          id?: string
+          p256dh: string
+          perfil_id: string
+        }
+        Update: {
+          aparelho?: string | null
+          auth?: string
+          casal_id?: string
+          criado_em?: string
+          endpoint?: string
+          falhas?: number
+          id?: string
+          p256dh?: string
+          perfil_id?: string
+        }
+        Relationships: []
+      }
       balancos: {
         Row: {
           ano: number
@@ -504,6 +540,26 @@ export type Database = {
         }
         Returns: string
       }
+      fn_avisos_para_push: {
+        Args: Record<string, never>
+        Returns: {
+          endpoint: string
+          p256dh: string
+          auth: string
+          titulo: string
+          corpo: string
+          tag: string
+          caminho: string
+        }[]
+      }
+      fn_chave_push: {
+        Args: Record<string, never>
+        Returns: string
+      }
+      fn_falha_no_push: {
+        Args: { p_endpoint: string }
+        Returns: undefined
+      }
       fn_excluir_carteira: {
         Args: { p_carteira_id: string }
         Returns: string
@@ -576,3 +632,4 @@ export type Pagamento = Tables<'pagamentos'>
 export type Perfil = Tables<'perfis'>
 export type Balanco = Tables<'balancos'>
 export type Ajuste = Tables<'ajustes'>
+export type AssinaturaPush = Tables<'assinaturas_push'>

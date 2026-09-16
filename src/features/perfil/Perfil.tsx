@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { Tela } from '@/ui/Tela'
 import { TituloSecao } from '@/ui/TituloSecao'
+import { Notificacoes } from '@/features/perfil/Notificacoes'
 import { CampoSenha } from '@/ui/CampoSenha'
 import { iniciais } from '@/lib/formatters'
 import { toast } from '@/store/useToasts'
@@ -112,6 +113,8 @@ export default function Perfil() {
           <div className="empty">{isLoading ? 'Carregando o perfil' : 'Perfil não encontrado'}</div>
         </div>
       )}
+
+      <Notificacoes />
 
       <TituloSecao icone="fa-shield-halved">Atualizar senha</TituloSecao>
       <div className="card">
