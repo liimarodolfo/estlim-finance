@@ -737,3 +737,19 @@ body {
     grid-template-columns: repeat(4, 1fr);
   }
 }
+
+/* O card do Dashboard passou de dois para quatro indicadores, em duas linhas:
+   previsto em cima, realizado embaixo. O protótipo tem .hero-stats como flex
+   de dois, que em quatro apertaria os rótulos longos numa linha só. */
+.hero-stats.hero-quatro {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+/* Em tela estreita o rótulo de duas palavras quebrava em duas linhas e
+   desalinhava a dupla. Um ponto a menos resolve sem perder a leitura. */
+@media (max-width: 420px) {
+  .hero-stats.hero-quatro .hero-stat span {
+    font-size: 10px;
+  }
+}

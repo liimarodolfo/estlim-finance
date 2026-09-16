@@ -151,9 +151,16 @@ export default function Dashboard() {
   const somaCaixa = (arr: LancamentoComBaixa[]) =>
     arr.reduce((s, l) => s + (l.valor_caixa ?? 0), 0)
 
+  // Realizado é o que de fato passou pela conta, pela mesma regra do Balanço e
+  // dos Relatórios: previsto é valor_exibido, realizado é valor_realizado.
+  const somaRealizada = (arr: LancamentoComBaixa[]) =>
+    arr.reduce((s, l) => s + (l.valor_realizado ?? 0), 0)
+
   const totalReceitas = somaPrevista(receitas)
   // Aporte não entra em despesa: é transferência de patrimônio, não consumo.
   const totalDespesas = somaPrevista(despesas)
+  const recebido = somaRealizada(receitas)
+  const jaPago = somaRealizada(despesas)
   const pendentes = despesas.filter((l) => l.status !== 'pago')
   const aReceber = receitas.filter((l) => l.status !== 'pago')
   const atrasados = lancamentos.filter((l) => l.status === 'atrasado')
@@ -217,22 +224,35 @@ export default function Dashboard() {
           Saldo previsto de {MESES_LONGOS[mes]} de {ano}
         </div>
         <NumeroAnimado valor={totalReceitas - totalDespesas} className="hero-value" como="div" />
-        <div className="hero-sub">
-          {fmtMoeda(totalReceitas)} previstos · {fmtMoeda(totalDespesas)} comprometidos
-        </div>
-        <div className="hero-stats">
+        {/* A linha de apoio saiu: ela repetia, em texto corrido, os dois
+            numeros que ja estavam logo abaixo em destaque. */}
+        <div className="hero-stats hero-quatro">
           <div className="hero-stat">
             <b>{fmtMoeda(totalReceitas)}</b>
             <span>
               <i className="fa-solid fa-arrow-trend-up" aria-hidden="true" />
-              Receitas
+              Receitas previstas
             </span>
           </div>
           <div className="hero-stat">
             <b>{fmtMoeda(totalDespesas)}</b>
             <span>
               <i className="fa-solid fa-arrow-trend-down" aria-hidden="true" />
-              Despesas
+              Despesas previstas
+            </span>
+          </div>
+          <div className="hero-stat">
+            <b>{fmtMoeda(recebido)}</b>
+            <span>
+              <i className="fa-solid fa-circle-check" aria-hidden="true" />
+              Saldo já recebido
+            </span>
+          </div>
+          <div className="hero-stat">
+            <b>{fmtMoeda(jaPago)}</b>
+            <span>
+              <i className="fa-solid fa-receipt" aria-hidden="true" />
+              Despesas já pagas
             </span>
           </div>
         </div>
