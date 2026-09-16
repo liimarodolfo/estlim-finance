@@ -18,7 +18,7 @@ type Props = {
  * usuário descobrir sozinho meses depois.
  */
 export function SheetExtrato({ aberto, aoFechar, carteira }: Props) {
-  const { data, isLoading, error } = useExtrato(aberto ? (carteira?.id ?? null) : null)
+  const { data, isLoading, error } = useExtrato(aberto && carteira ? [carteira.id] : null)
 
   const confere = data ? Math.abs(data.saldo - (carteira?.saldo ?? 0)) < 0.005 : true
 

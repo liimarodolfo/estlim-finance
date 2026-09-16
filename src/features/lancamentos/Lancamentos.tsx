@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Tela } from '@/ui/Tela'
 import { Chip } from '@/ui/Chip'
 import { fmtMoeda } from '@/lib/formatters'
@@ -29,6 +30,7 @@ const FILTROS: { id: Filtro; rotulo: string; icone: string }[] = [
 ]
 
 export default function Lancamentos() {
+  const navigate = useNavigate()
   const mes = useFiltros((e) => e.mes)
   const ano = useFiltros((e) => e.ano)
   const idEmFoco = useFiltros((e) => e.idEmFoco)
@@ -168,6 +170,14 @@ export default function Lancamentos() {
         categorias={categorias}
         lancamentos={lancamentos}
       />
+
+      {/* Categoria saiu da barra de baixo e mora aqui, que e a tela onde se fala
+          dela o tempo todo. A casa de la ficou para os Relatorios. */}
+      <button type="button" className="atalho-categorias" onClick={() => navigate('/categorias')}>
+        <i className="fa-solid fa-tags" aria-hidden="true" />
+        <span>Categorias</span>
+        <i className="fa-solid fa-chevron-right" aria-hidden="true" />
+      </button>
 
       <div id="txList">
         {grupos
