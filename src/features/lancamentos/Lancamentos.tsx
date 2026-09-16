@@ -90,7 +90,12 @@ export default function Lancamentos() {
       { titulo: 'A pagar', icone: 'fa-arrow-up-from-bracket', itens: semFatura.filter((l) => l.tipo === 'despesa' && l.status !== 'pago'), caixa: false },
       { titulo: 'A receber', icone: 'fa-hand-holding-dollar', itens: semFatura.filter((l) => l.tipo === 'receita' && l.status !== 'pago'), caixa: false },
       { titulo: 'A investir', icone: 'fa-seedling', itens: semFatura.filter((l) => l.tipo === 'investimento' && l.status !== 'pago'), caixa: false },
-      { titulo: 'Concluídos', icone: 'fa-circle-check', itens: semFatura.filter((l) => l.status === 'pago'), caixa: false },
+      // Concluídos era um grupo só, e o subtotal somava receita com despesa: um
+      // número que não queria dizer nada. Separado por tipo, cada total responde
+      // uma pergunta: quanto saiu, quanto entrou, quanto foi aplicado.
+      { titulo: 'Pagos', icone: 'fa-circle-check', itens: semFatura.filter((l) => l.tipo === 'despesa' && l.status === 'pago'), caixa: false },
+      { titulo: 'Recebidos', icone: 'fa-sack-dollar', itens: semFatura.filter((l) => l.tipo === 'receita' && l.status === 'pago'), caixa: false },
+      { titulo: 'Aplicados', icone: 'fa-seedling', itens: semFatura.filter((l) => l.tipo === 'investimento' && l.status === 'pago'), caixa: false },
     ]
       .filter((g) => g.itens.length > 0)
       .map((g) => ({ ...g, total: g.caixa ? somaCaixa(g.itens) : soma(g.itens) }))

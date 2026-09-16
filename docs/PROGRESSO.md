@@ -124,6 +124,19 @@ testado escrito na mensagem.
 
 ## Diario de sessoes
 
+### Sessao 10 · 16/09/2026 · Pagos e Recebidos separados
+
+O Rodolfo pediu para dividir o grupo Concluidos em Pagos e Recebidos. O pedido
+era de organizacao, mas de quebra conserta um numero que mentia: o subtotal
+somava receita com despesa como se fossem a mesma coisa. Na tela dele aparecia
+"Concluidos 6 . R$ 16.972,45", que e 16.500 de salario mais 472,45 de contas,
+um valor que nao responde pergunta nenhuma.
+
+Agora sao tres grupos, e cada total diz uma coisa so: Pagos (R$ 472,45),
+Recebidos (R$ 16.500,00) e Aplicados, que so aparece quando ha aporte
+concluido. Os nomes seguem o mesmo vocabulario do selo de status, onde despesa
+fica paga, receita fica recebida e aporte fica aplicado.
+
 ### Sessao 9 · 16/09/2026 · O push funcionando, e o fuso que ele revelou
 
 A notificacao chegou no iPhone do Rodolfo no primeiro teste, o que fechou o
