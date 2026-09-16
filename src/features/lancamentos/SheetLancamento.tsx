@@ -24,7 +24,7 @@ import {
 } from '@/hooks/useLancamentos'
 import type { Dono, LancTipo, MetodoPagamento, Natureza, TipoValor } from '@/types/database'
 
-const DONOS: Dono[] = ['Rodolfo', 'Thainy', 'Casal', 'RLiima']
+const DONOS: Dono[] = ['Rodolfo', 'Thainy', 'RLiima']
 
 // Duas categorias nunca sao escolhidas a mao: Investimentos, porque o aporte
 // tem o campo de destino, e Ajuste de saldo, que so o fluxo de ajuste preenche.
@@ -75,7 +75,7 @@ export function SheetLancamento({ aberto, aoFechar, lancamento, tipoInicial }: P
     lancamento?.forma_metodo ?? (tipoInicial === 'receita' ? 'pix' : 'pix'),
   )
   const [fonte, setFonte] = useState(lancamento?.forma_ref ?? '')
-  const [dono, setDono] = useState<Dono>(lancamento?.dono ?? 'Casal')
+  const [dono, setDono] = useState<Dono>(lancamento?.dono ?? 'Rodolfo')
   const [observacoes, setObservacoes] = useState(lancamento?.observacoes ?? '')
   const [comprovante, setComprovante] = useState(lancamento?.comprovante_url ?? null)
   // O anexo que ja estava salvo. Serve para saber o que pode sumir do bucket

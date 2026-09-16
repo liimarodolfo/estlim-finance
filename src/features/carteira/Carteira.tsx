@@ -9,6 +9,7 @@ import { useReveal } from '@/ui/useReveal'
 import { fmtMoeda } from '@/lib/formatters'
 import { GRADIENTE_DONO, gradienteDaMarca } from '@/lib/marcas'
 import { useCarteiras } from '@/hooks/useCarteiras'
+import { useDivida } from '@/hooks/useDivida'
 import { SheetCarteira } from '@/features/carteira/SheetCarteira'
 import { SheetExtrato } from '@/features/carteira/SheetExtrato'
 import { ExtratoDaSelecao } from '@/features/carteira/ExtratoDaSelecao'
@@ -58,6 +59,12 @@ export default function Carteira() {
   const usadoTotal = cartoes.reduce((s, c) => s + c.usado, 0)
   const limiteLivre = cartoes.reduce((s, c) => s + c.limite, 0) - usadoTotal
 
+  // O card mostrava so a fatura em aberto, que e uma divida entre varias. Agora
+  // mostra tudo o que esta vinculado a esta carteira e ainda nao foi pago.
+  const { data: divida } = useDivida()
+  const dividaDoPerfil =
+    perfil === 'Geral' ? (divida?.total ?? 0) : (divida?.porDono[perfil] ?? 0)
+
   const donos: Dono[] = perfil === 'Geral' ? ['Rodolfo', 'Thainy', 'RLiima'] : [perfil]
 
   useReveal([carteiras, perfil])
@@ -82,10 +89,10 @@ export default function Carteira() {
         <div className="hero-sub">{subtituloDoPerfil(perfil)}</div>
         <div className="ws-row">
           <div className="ws-item">
-            <b>{fmtMoeda(usadoTotal)}</b>
+            <b>{fmtMoeda(dividaDoPerfil)}</b>
             <span>
               <i className="fa-solid fa-file-invoice-dollar" aria-hidden="true" />
-              Faturas em aberto
+              Total a pagar
             </span>
           </div>
           <div className="ws-item">

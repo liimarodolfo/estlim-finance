@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type Dono = 'Geral' | 'Rodolfo' | 'Thainy' | 'Casal' | 'RLiima'
+export type Dono = 'Geral' | 'Rodolfo' | 'Thainy' | 'RLiima'
 /** Os chips da lista de lançamentos. Mora no store porque a busca precisa
  *  zerar o filtro ao levar para um lançamento de outro recorte. */
 export type FiltroLista =

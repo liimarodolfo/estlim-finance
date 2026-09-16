@@ -89,7 +89,6 @@ export const GRADIENTE_DONO: Record<string, string> = {
   Geral: 'linear-gradient(135deg,#0b8a5c 0%,#17b583 45%,#3ad6a4 100%)',
   Rodolfo: 'linear-gradient(135deg,#153e90,#2563eb,#60a5fa)',
   Thainy: 'linear-gradient(135deg,#b0225a,#ec4899,#ffa1c9)',
-  Casal: 'linear-gradient(135deg,#0b8a5c 0%,#17b583 45%,#3ad6a4 100%)',
   RLiima: 'linear-gradient(135deg,#05070a,#1c2430,#3a4656)',
 }
 

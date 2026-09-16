@@ -22,7 +22,12 @@ createRoot(document.getElementById('root')!).render(
         // Cache mais velho que um dia nao vale a pena restaurar: abrir o app com
         // numero de ontem e pior do que abrir carregando.
         maxAge: 1000 * 60 * 60 * 24,
-        buster: 'v1',
+        // Suba este numero sempre que o formato de algum dado em cache mudar.
+        // O cache guardado em disco sobrevive ao deploy, entao codigo novo lendo
+        // dado velho quebra na cara do usuario: os relatorios passaram a devolver
+        // { previsto, realizado } no lugar de um numero solto, e sem o buster a
+        // tela abriria com R$ NaN ate o cache vencer.
+        buster: 'v2',
       }}
     >
       <ToastZone />
